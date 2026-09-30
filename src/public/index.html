@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mavis Panel</title>
+  <link rel="stylesheet" href="/mavis-assets/app.css">
+  <link rel="icon" type="image/svg+xml" href="/mavis-assets/logo.svg">
+</head>
+<body>
+
+  <nav class="topbar">
+    <a href="#/home" class="logo">Mavis</a>
+    <div class="nav-links">
+      <a href="#/home" class="nav-link active" data-page="home">Home</a>
+      <a href="#/subs" class="nav-link" data-page="subs">Subs</a>
+      <a href="#/nodes" class="nav-link" data-page="nodes">Direct Links</a>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- HOME -->
+    <div id="viewHome" class="page active">
+
+      <div class="status-bar">
+        <div class="status-row">
+          <span class="dot green"></span>
+          <span class="status-label">Uptime</span>
+          <span class="status-val" id="homeUptime">—</span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">Location</span>
+          <span class="status-val" id="homeLocation">—</span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">Host</span>
+          <span class="status-val" id="homeHost">—</span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">Port</span>
+          <span class="status-val" id="homePort">—</span>
+        </div>
+      </div>
+
+      <div class="protos">
+        <span class="proto-tag">VLESS</span>
+        <span class="proto-tag">Trojan</span>
+        <span class="proto-tag">VMess</span>
+        <span class="proto-tag">Shadowsocks</span>
+        <span class="proto-tag">WireGuard</span>
+        <span class="proto-tag">Reality</span>
+      </div>
+
+    </div>
+
+    <!-- SUBS -->
+    <div id="viewSubs" class="page">
+
+      <div class="section-head">
+        <h2>Subscriptions</h2>
+        <div class="proto-switch">
+          <button type="button" id="btnProtoHttp" class="sw-btn active">HTTP</button>
+          <button type="button" id="btnProtoHttps" class="sw-btn">HTTPS</button>
+        </div>
+      </div>
+
+      <div class="sub-list">
+
+        <div class="sub-row">
+          <div class="sub-meta">
+            <strong>Universal</strong>
+            <span class="sub-hint">v2rayN / v2rayNG / Hiddify / Streisand</span>
+          </div>
+          <div class="sub-controls">
+            <input type="text" id="urlSubCompat" class="mono-input" readonly>
+            <button type="button" class="btn" data-action="copy-input" data-target="urlSubCompat">Copy</button>
+            <button type="button" class="btn" data-action="qr-input" data-target="urlSubCompat">QR</button>
+          </div>
+        </div>
+
+        <div class="sub-row">
+          <div class="sub-meta">
+            <strong>Clash Meta / Mihomo</strong>
+            <span class="sub-hint">Clash Verge / Mihomo / Flclash</span>
+          </div>
+          <div class="sub-controls">
+            <input type="text" id="urlClash" class="mono-input" readonly>
+            <button type="button" class="btn" data-action="copy-input" data-target="urlClash">Copy</button>
+            <button type="button" class="btn" data-action="qr-input" data-target="urlClash">QR</button>
+          </div>
+        </div>
+
+        <div class="sub-row">
+          <div class="sub-meta">
+            <strong>Sing-box JSON</strong>
+          </div>
+          <div class="sub-controls">
+            <input type="text" id="urlSb" class="mono-input" readonly>
+            <button type="button" class="btn" data-action="copy-input" data-target="urlSb">Copy</button>
+          </div>
+        </div>
+
+        <div class="sub-row">
+          <div class="sub-meta">
+            <strong>Full Subscription</strong>
+            <span class="sub-hint">All protocols</span>
+          </div>
+          <div class="sub-controls">
+            <input type="text" id="urlSubFull" class="mono-input" readonly>
+            <button type="button" class="btn" data-action="copy-input" data-target="urlSubFull">Copy</button>
+          </div>
+        </div>
+
+        <div class="sub-row" id="subRowWg">
+          <div class="sub-meta">
+            <strong>WireGuard</strong>
+            <span class="sub-hint">.conf profile</span>
+          </div>
+          <div class="sub-controls">
+            <input type="text" id="urlWgConf" class="mono-input" readonly>
+            <button type="button" class="btn" data-action="copy-input" data-target="urlWgConf">Copy</button>
+            <a href="/mavis/wg.conf" id="btnDownloadWg" download="mavis-wg.conf" class="btn">Download</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- NODES -->
+    <div id="viewNodes" class="page">
+      <div class="section-head">
+        <h2>Direct Links</h2>
+        <div class="loc-badge" id="nodesLocationBadge">
+          <span class="dot green"></span>
+          <span id="nodesLocation">Loading…</span>
+        </div>
+      </div>
+      <div id="nodesContainer" class="nodes-list">
+        <p class="muted center">Loading links…</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- QR Modal -->
+  <div id="qrModal" class="modal-bg">
+    <div class="modal">
+      <div class="modal-top">
+        <h3 id="qrModalTitle">QR Code</h3>
+        <button type="button" class="modal-close" id="qrCloseBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="qrcodeWrapper" class="qr-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mavisToast" class="toast"></div>
+
+  <footer class="footer">Made by Arash Seyfi</footer>
+
+  <script src="/mavis-assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "mavis-panel",
+  "version": "1.0.0",
+  "description": "mavis-panel — Clean, modern, high-performance multi-protocol proxy & web panel",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node src/server.js",
+    "build": "node scripts/bundle.js",
+    "bundle": "node scripts/bundle.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "express": "^4.21.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "author": "Arash Seyfi",
+  "license": "MIT"
+}

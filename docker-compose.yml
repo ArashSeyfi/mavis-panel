@@ -1,0 +1,16 @@
+services:
+  mavis:
+    build: .
+    container_name: mavis-panel
+    restart: unless-stopped
+    network_mode: "host"
+    environment:
+      - PORT=443
+      - PANEL_PATH=mavis
+      # Optional settings:
+      # - PANEL_TOKEN=your_secret_token
+      # - FORCE_HOST=your-server-ip-or-domain
+      # - ARGO_AUTH=your_argo_tunnel_token
+      # - ARGO_DOMAIN=your_argo_domain
+    volumes:
+      - ./data:/home/container/mavis-data
