@@ -365,10 +365,12 @@ const DEFAULT_CONFIG = {
     mtproto: true
   },
   mtproto: {
-    sni: 'dns.google',
+    sni: 'www.google.com',
     secret: '',
     concurrency: 512,
     preferIp: 'prefer-ipv4',
+    tolerateTimeSkewness: '120s',
+    socks5: '',
     port: null
   },
   argo: {
@@ -520,6 +522,8 @@ function buildConfig(userOverrides = {}) {
     if (!isNaN(parsedConc) && parsedConc > 0) cfg.mtproto.concurrency = parsedConc;
   }
   if (env.MTPROTO_PREFER_IP) cfg.mtproto.preferIp = env.MTPROTO_PREFER_IP;
+  if (env.MTPROTO_TIME_SKEW) cfg.mtproto.tolerateTimeSkewness = env.MTPROTO_TIME_SKEW;
+  if (env.MTPROTO_SOCKS5) cfg.mtproto.socks5 = env.MTPROTO_SOCKS5;
   if (env.MTG_VERSION) cfg.mtgVersion = env.MTG_VERSION;
 
   if (env.WG_PORT) cfg.wireguard.port = parseInt(env.WG_PORT, 10);
@@ -571,6 +575,7 @@ function buildConfig(userOverrides = {}) {
     cloudflaredBin: path.join(dataDir, 'bin', os.platform() === 'win32' ? 'cloudflared.exe' : 'cloudflared'),
     cloudflaredLog: path.join(dataDir, 'cloudflared.log'),
     mtgBin: path.join(dataDir, 'bin', os.platform() === 'win32' ? 'mtg.exe' : 'mtg'),
+    mtgConfig: path.join(dataDir, 'mtg.toml'),
     mtgLog: path.join(dataDir, 'mtg.log')
   };
 
@@ -710,11 +715,20 @@ class StateManager {
     }
 
     // MTProto Fake-TLS Secret
+    const targetSni = ((this.config.mtproto && this.config.mtproto.sni) || 'www.google.com').trim().toLowerCase();
     if (this.config.mtproto && this.config.mtproto.secret) {
       this.state.mtprotoSecret = this.config.mtproto.secret;
     } else if (!this.state.mtprotoSecret) {
-      const sni = (this.config.mtproto && this.config.mtproto.sni) || 'dns.google';
-      this.state.mtprotoSecret = 'ee' + crypto.randomBytes(16).toString('hex') + Buffer.from(sni, 'ascii').toString('hex');
+      this.state.mtprotoSecret = 'ee' + crypto.randomBytes(16).toString('hex') + Buffer.from(targetSni, 'ascii').toString('hex');
+    } else {
+      // Auto-migrate from blocked legacy 'dns.google' or update if user changed MTPROTO_SNI
+      const current = this.state.mtprotoSecret.toLowerCase();
+      const legacyDnsGoogleHex = Buffer.from('dns.google', 'ascii').toString('hex');
+      if (current.endsWith(legacyDnsGoogleHex)) {
+        const keyPart = current.slice(0, 34); // 'ee' + 32-char hex key
+        this.state.mtprotoSecret = keyPart + Buffer.from(targetSni, 'ascii').toString('hex');
+        Logger.info(`MTProto secret auto-migrated from dns.google to clean SNI (${targetSni})`);
+      }
     }
 
     // WireGuard
@@ -1970,6 +1984,47 @@ class MtgEngine {
     this.logRotatorTimer = null;
   }
 
+  buildTomlConfig(secret) {
+    const concurrency = (this.config.mtproto && this.config.mtproto.concurrency) || 512;
+    const preferIp = (this.config.mtproto && this.config.mtproto.preferIp) || 'prefer-ipv4';
+    const timeSkew = (this.config.mtproto && this.config.mtproto.tolerateTimeSkewness) || '120s';
+    const socks5 = (this.config.mtproto && this.config.mtproto.socks5) || '';
+
+    let toml = `# Mavis Panel MTProto Engine (mtg) configuration
+secret = ${JSON.stringify(secret)}
+bind-to = "127.0.0.1:${this.port}"
+concurrency = ${concurrency}
+prefer-ip = "${preferIp}"
+tolerate-time-skewness = "${timeSkew}"
+allow-fallback-on-unknown-dc = true
+
+[network.timeout]
+tcp = "5s"
+http = "10s"
+idle = "5m"
+handshake = "10s"
+
+[defense.anti-replay]
+enabled = true
+max-size = "1mib"
+
+# Blocklist disabled to prevent false-positive bans of client/loopback subnets
+[defense.blocklist]
+enabled = false
+`;
+
+    if (socks5) {
+      toml += `
+[network]
+proxies = [
+  ${JSON.stringify(socks5)}
+]
+`;
+    }
+
+    return toml;
+  }
+
   start() {
     if (!this.config.enable.mtproto || !fs.existsSync(this.paths.mtgBin)) {
       Logger.warn('mtg binary missing or MTProto disabled. MTProto engine skipped.');
@@ -1985,17 +2040,15 @@ class MtgEngine {
     const maxLogSize = (this.config.maxLogSizeMb || 5) * 1024 * 1024;
     rotateLogIfNeeded(this.paths.mtgLog, maxLogSize);
 
-    const concurrency = String((this.config.mtproto && this.config.mtproto.concurrency) || 512);
-    const preferIp = (this.config.mtproto && this.config.mtproto.preferIp) || 'prefer-ipv4';
+    // Write robust TOML config with generous time skew and disabled FireHOL blocklist
+    const tomlContent = this.buildTomlConfig(secret);
+    try {
+      fs.writeFileSync(this.paths.mtgConfig, tomlContent, 'utf8');
+    } catch (err) {
+      Logger.warn(`Failed to write mtg.toml: ${err.message}`);
+    }
 
-    const args = [
-      'simple-run',
-      `127.0.0.1:${this.port}`,
-      secret,
-      '--concurrency', concurrency,
-      '--prefer-ip', preferIp,
-      '--antireplay-cache-size', '1MB'
-    ];
+    const args = ['run', this.paths.mtgConfig];
 
     Logger.step(`Launching Telegram MTProto proxy (mtg) on local port ${this.port}...`);
     const logFd = fs.openSync(this.paths.mtgLog, 'a');
@@ -2209,7 +2262,14 @@ class LinkGenerator {
     const secret = this.state.mtprotoSecret;
     if (!secret) return null;
 
-    const sni = (this.config.mtproto && this.config.mtproto.sni) || 'dns.google';
+    let sni = (this.config.mtproto && this.config.mtproto.sni) || 'www.google.com';
+    if (secret.toLowerCase().startsWith('ee') && secret.length > 34) {
+      try {
+        const dHex = secret.slice(34);
+        const parsed = Buffer.from(dHex, 'hex').toString('ascii').trim();
+        if (parsed) sni = parsed;
+      } catch {}
+    }
     const port = (this.config.mtproto && this.config.mtproto.port) || this.port;
     const name = `${this.prefix}MTProto`;
 
@@ -3461,15 +3521,33 @@ function createHttpPanel(config, stateManager, engineStatusGetter, resolvedHostG
 
 // --- Module: lib/mux/tcp-router.js ---
 class TcpRouter {
-  constructor(config, targetPorts, expressServer, expressApp) {
+  constructor(config, targetPorts, expressServer, expressApp, stateManager = null) {
     this.config = config;
     this.ports = targetPorts;
     this.httpServer = expressServer;
     this.expressApp = expressApp || (expressServer && expressServer.listeners('request')[0]);
+    this.stateManager = stateManager;
     this.server = null;
     this.httpsServer = null;
     this.internalHttpsPort = null;
     this.mtprotoServer = null;
+  }
+
+  getMtprotoSniList() {
+    const list = new Set();
+    const cfgSni = (this.config.mtproto && this.config.mtproto.sni) || 'www.google.com';
+    list.add(cfgSni.toLowerCase().trim().replace(/\.$/, ''));
+
+    const sec = this.stateManager?.state?.mtprotoSecret || (this.config.mtproto && this.config.mtproto.secret);
+    if (sec && typeof sec === 'string' && sec.toLowerCase().startsWith('ee') && sec.length > 34) {
+      try {
+        const domainHex = sec.slice(34);
+        const domain = Buffer.from(domainHex, 'hex').toString('ascii').trim().toLowerCase().replace(/\.$/, '');
+        if (domain) list.add(domain);
+      } catch {}
+    }
+
+    return Array.from(list);
   }
 
   pipeToBackend(clientSocket, firstChunk, targetPort, label) {
@@ -3643,8 +3721,9 @@ class TcpRouter {
 
           // Priority 0: MTProto fake-TLS check (by SNI match)
           if (this.config.enable.mtproto && this.ports.mtproto && sni) {
-            const mtgSni = ((this.config.mtproto && this.config.mtproto.sni) || 'dns.google').toLowerCase();
-            if (sni.toLowerCase() === mtgSni) {
+            const cleanSni = sni.toLowerCase().trim().replace(/\.$/, '');
+            const allowedMtg = this.getMtprotoSniList();
+            if (allowedMtg.includes(cleanSni)) {
               target = { port: this.ports.mtproto, label: 'MTProto' };
             }
           }
@@ -3900,7 +3979,7 @@ async function startGate(userConfig = {}) {
   });
 
   const { server: expressServer, app: expressApp } = createHttpPanel(config, stateMgr, engineStatusGetter, () => resolvedHost);
-  const tcpRouter = new TcpRouter(config, allocatedPorts, expressServer, expressApp);
+  const tcpRouter = new TcpRouter(config, allocatedPorts, expressServer, expressApp, stateMgr);
   await tcpRouter.start();
 
   // 10. Summary

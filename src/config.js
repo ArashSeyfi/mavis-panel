@@ -44,10 +44,12 @@ const DEFAULT_CONFIG = {
     mtproto: true
   },
   mtproto: {
-    sni: 'dns.google',
+    sni: 'www.google.com',
     secret: '',
     concurrency: 512,
     preferIp: 'prefer-ipv4',
+    tolerateTimeSkewness: '120s',
+    socks5: '',
     port: null
   },
   argo: {
@@ -199,6 +201,8 @@ function buildConfig(userOverrides = {}) {
     if (!isNaN(parsedConc) && parsedConc > 0) cfg.mtproto.concurrency = parsedConc;
   }
   if (env.MTPROTO_PREFER_IP) cfg.mtproto.preferIp = env.MTPROTO_PREFER_IP;
+  if (env.MTPROTO_TIME_SKEW) cfg.mtproto.tolerateTimeSkewness = env.MTPROTO_TIME_SKEW;
+  if (env.MTPROTO_SOCKS5) cfg.mtproto.socks5 = env.MTPROTO_SOCKS5;
   if (env.MTG_VERSION) cfg.mtgVersion = env.MTG_VERSION;
 
   if (env.WG_PORT) cfg.wireguard.port = parseInt(env.WG_PORT, 10);
@@ -250,6 +254,7 @@ function buildConfig(userOverrides = {}) {
     cloudflaredBin: path.join(dataDir, 'bin', os.platform() === 'win32' ? 'cloudflared.exe' : 'cloudflared'),
     cloudflaredLog: path.join(dataDir, 'cloudflared.log'),
     mtgBin: path.join(dataDir, 'bin', os.platform() === 'win32' ? 'mtg.exe' : 'mtg'),
+    mtgConfig: path.join(dataDir, 'mtg.toml'),
     mtgLog: path.join(dataDir, 'mtg.log')
   };
 

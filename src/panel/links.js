@@ -52,7 +52,14 @@ class LinkGenerator {
     const secret = this.state.mtprotoSecret;
     if (!secret) return null;
 
-    const sni = (this.config.mtproto && this.config.mtproto.sni) || 'dns.google';
+    let sni = (this.config.mtproto && this.config.mtproto.sni) || 'www.google.com';
+    if (secret.toLowerCase().startsWith('ee') && secret.length > 34) {
+      try {
+        const dHex = secret.slice(34);
+        const parsed = Buffer.from(dHex, 'hex').toString('ascii').trim();
+        if (parsed) sni = parsed;
+      } catch {}
+    }
     const port = (this.config.mtproto && this.config.mtproto.port) || this.port;
     const name = `${this.prefix}MTProto`;
 

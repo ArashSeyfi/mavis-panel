@@ -156,7 +156,7 @@ async function startGate(userConfig = {}) {
   });
 
   const { server: expressServer, app: expressApp } = createHttpPanel(config, stateMgr, engineStatusGetter, () => resolvedHost);
-  const tcpRouter = new TcpRouter(config, allocatedPorts, expressServer, expressApp);
+  const tcpRouter = new TcpRouter(config, allocatedPorts, expressServer, expressApp, stateMgr);
   await tcpRouter.start();
 
   // 10. Summary
