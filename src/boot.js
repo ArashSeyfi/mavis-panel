@@ -1,5 +1,6 @@
+const path = require('path');
 const axios = require('axios');
-const { Logger } = require('./logger');
+const { Logger, rotateLogIfNeeded } = require('./logger');
 const { buildConfig } = require('./config');
 const { StateManager } = require('./state');
 const { allocatePorts } = require('./ports');
@@ -53,6 +54,14 @@ async function startGate(userConfig = {}) {
   Logger.item('Public Port', config.publicPort);
   Logger.item('Panel Path', `/${config.panelPath}`);
   Logger.item('Data Directory', config.paths.dataDir);
+
+  // Pre-flight check: truncate any oversized existing log files to immediately reclaim disk space
+  const maxLogSize = (config.maxLogSizeMb || 5) * 1024 * 1024;
+  for (const logPath of [config.paths.singboxLog, config.paths.xrayLog, config.paths.cloudflaredLog]) {
+    if (rotateLogIfNeeded(logPath, maxLogSize)) {
+      Logger.info(`Reclaimed disk space: truncated oversized log (${path.basename(logPath)})`);
+    }
+  }
 
   // 3. Persistent state
   const stateMgr = new StateManager(config.paths, config);

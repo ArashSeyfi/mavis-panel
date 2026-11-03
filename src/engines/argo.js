@@ -1,7 +1,7 @@
 const fs = require('fs');
 const { spawn } = require('child_process');
 const axios = require('axios');
-const { Logger } = require('../logger');
+const { Logger, readTailSync, rotateLogIfNeeded } = require('../logger');
 
 class ArgoTunnel {
   constructor(config, targetPort) {
@@ -10,6 +10,7 @@ class ArgoTunnel {
     this.targetPort = targetPort;
     this.process = null;
     this.tunnelDomain = '';
+    this.logRotatorTimer = null;
   }
 
   async discoverDomain(timeoutMs = 45000) {
@@ -24,15 +25,15 @@ class ArgoTunnel {
         } catch {}
       }
 
-      if (fs.existsSync(this.paths.cloudflaredLog)) {
-        try {
-          const logContent = fs.readFileSync(this.paths.cloudflaredLog, 'utf8');
+      try {
+        const logContent = readTailSync(this.paths.cloudflaredLog, 64 * 1024);
+        if (logContent) {
           const match = logContent.match(/https?:\/\/([a-z0-9-]+\.trycloudflare\.com)/i);
           if (match) {
             return match[1].toLowerCase();
           }
-        } catch {}
-      }
+        }
+      } catch {}
 
       await new Promise(r => setTimeout(r, 2000));
     }
@@ -53,17 +54,33 @@ class ArgoTunnel {
 
     // Quick tunnel
     Logger.step('Launching Cloudflare Argo Quick Tunnel...');
+    const maxLogSize = (this.config.maxLogSizeMb || 5) * 1024 * 1024;
+    rotateLogIfNeeded(this.paths.cloudflaredLog, maxLogSize);
     const logFd = fs.openSync(this.paths.cloudflaredLog, 'a');
 
+    let argoLogLevel = (this.config.argoLogLevel || this.config.logLevel || 'warn').toLowerCase();
+    if (argoLogLevel === 'warning') argoLogLevel = 'warn';
+
     this.process = spawn(this.paths.cloudflaredBin, [
-      'tunnel', '--no-autoupdate', '--metrics', '127.0.0.1:2000',
+      'tunnel', '--no-autoupdate',
+      '--loglevel', argoLogLevel,
+      '--metrics', '127.0.0.1:2000',
       '--url', `http://127.0.0.1:${this.targetPort}`
     ], {
       stdio: ['ignore', logFd, logFd],
       detached: false
     });
 
+    this.logRotatorTimer = setInterval(() => {
+      rotateLogIfNeeded(this.paths.cloudflaredLog, maxLogSize);
+    }, 60000);
+    if (this.logRotatorTimer.unref) this.logRotatorTimer.unref();
+
     this.process.on('exit', () => {
+      if (this.logRotatorTimer) {
+        clearInterval(this.logRotatorTimer);
+        this.logRotatorTimer = null;
+      }
       try { fs.closeSync(logFd); } catch {}
     });
 
@@ -78,6 +95,10 @@ class ArgoTunnel {
   }
 
   stop() {
+    if (this.logRotatorTimer) {
+      clearInterval(this.logRotatorTimer);
+      this.logRotatorTimer = null;
+    }
     if (this.process && !this.process.killed) {
       try { this.process.kill('SIGTERM'); } catch {}
     }

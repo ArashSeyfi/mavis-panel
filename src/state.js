@@ -47,9 +47,12 @@ class StateManager {
     try {
       fs.mkdirSync(this.paths.dataDir, { recursive: true });
       if (fs.existsSync(this.paths.stateFile)) {
-        const raw = fs.readFileSync(this.paths.stateFile, 'utf8');
-        const parsed = JSON.parse(raw);
-        this.state = { ...this.state, ...parsed };
+        const stat = fs.statSync(this.paths.stateFile);
+        if (stat.size > 0 && stat.size < 1024 * 1024) {
+          const raw = fs.readFileSync(this.paths.stateFile, 'utf8');
+          const parsed = JSON.parse(raw);
+          this.state = { ...this.state, ...parsed };
+        }
       }
     } catch (err) {
       Logger.warn(`Failed to read existing state.json: ${err.message}. Generating fresh state.`);

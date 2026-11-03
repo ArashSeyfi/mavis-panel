@@ -31,8 +31,11 @@ class AssetManager {
         const full = path.join(d, name);
         try {
           if (fs.existsSync(full)) {
-            const buf = fs.readFileSync(full);
-            if (buf && buf.length > 0) return buf;
+            const stat = fs.statSync(full);
+            if (stat.size > 0 && stat.size <= 2 * 1024 * 1024) {
+              const buf = fs.readFileSync(full);
+              if (buf && buf.length > 0) return buf;
+            }
           }
         } catch (_) {}
       }

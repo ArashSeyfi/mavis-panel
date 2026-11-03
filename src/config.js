@@ -82,7 +82,9 @@ const DEFAULT_CONFIG = {
   xrayVersion: '',
   panelToken: '',
   cpuLimitPercent: null,
-  quietConsoleAfterMs: 180000
+  quietConsoleAfterMs: 180000,
+  logLevel: 'warn',
+  maxLogSizeMb: 5
 };
 
 /**
@@ -201,6 +203,14 @@ function buildConfig(userOverrides = {}) {
   if (env.SS_PASSWORD) cfg.shadowsocks.password = env.SS_PASSWORD;
 
   if (env.CPU_LIMIT_PERCENT) cfg.cpuLimitPercent = parseInt(env.CPU_LIMIT_PERCENT, 10);
+
+  if (env.LOG_LEVEL || env.SINGBOX_LOG_LEVEL) cfg.logLevel = (env.LOG_LEVEL || env.SINGBOX_LOG_LEVEL).toLowerCase();
+  if (env.XRAY_LOG_LEVEL) cfg.xrayLogLevel = env.XRAY_LOG_LEVEL.toLowerCase();
+  if (env.ARGO_LOG_LEVEL) cfg.argoLogLevel = env.ARGO_LOG_LEVEL.toLowerCase();
+  if (env.MAX_LOG_SIZE_MB) {
+    const parsedMb = parseInt(env.MAX_LOG_SIZE_MB, 10);
+    if (!isNaN(parsedMb) && parsedMb > 0) cfg.maxLogSizeMb = parsedMb;
+  }
 
   // Data paths
   const dataDir = resolveDataDir(cfg.dataDirHint);
