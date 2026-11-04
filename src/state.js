@@ -94,11 +94,20 @@ class StateManager {
     }
 
     // MTProto Fake-TLS Secret
+    const targetSni = ((this.config.mtproto && this.config.mtproto.sni) || 'www.google.com').trim().toLowerCase();
     if (this.config.mtproto && this.config.mtproto.secret) {
       this.state.mtprotoSecret = this.config.mtproto.secret;
     } else if (!this.state.mtprotoSecret) {
-      const sni = (this.config.mtproto && this.config.mtproto.sni) || 'dns.google';
-      this.state.mtprotoSecret = 'ee' + crypto.randomBytes(16).toString('hex') + Buffer.from(sni, 'ascii').toString('hex');
+      this.state.mtprotoSecret = 'ee' + crypto.randomBytes(16).toString('hex') + Buffer.from(targetSni, 'ascii').toString('hex');
+    } else {
+      // Auto-migrate from blocked legacy 'dns.google' or update if user changed MTPROTO_SNI
+      const current = this.state.mtprotoSecret.toLowerCase();
+      const legacyDnsGoogleHex = Buffer.from('dns.google', 'ascii').toString('hex');
+      if (current.endsWith(legacyDnsGoogleHex)) {
+        const keyPart = current.slice(0, 34); // 'ee' + 32-char hex key
+        this.state.mtprotoSecret = keyPart + Buffer.from(targetSni, 'ascii').toString('hex');
+        Logger.info(`MTProto secret auto-migrated from dns.google to clean SNI (${targetSni})`);
+      }
     }
 
     // WireGuard

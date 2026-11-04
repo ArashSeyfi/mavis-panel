@@ -12,6 +12,47 @@ class MtgEngine {
     this.logRotatorTimer = null;
   }
 
+  buildTomlConfig(secret) {
+    const concurrency = (this.config.mtproto && this.config.mtproto.concurrency) || 512;
+    const preferIp = (this.config.mtproto && this.config.mtproto.preferIp) || 'prefer-ipv4';
+    const timeSkew = (this.config.mtproto && this.config.mtproto.tolerateTimeSkewness) || '120s';
+    const socks5 = (this.config.mtproto && this.config.mtproto.socks5) || '';
+
+    let toml = `# Mavis Panel MTProto Engine (mtg) configuration
+secret = ${JSON.stringify(secret)}
+bind-to = "127.0.0.1:${this.port}"
+concurrency = ${concurrency}
+prefer-ip = "${preferIp}"
+tolerate-time-skewness = "${timeSkew}"
+allow-fallback-on-unknown-dc = true
+
+[network.timeout]
+tcp = "5s"
+http = "10s"
+idle = "5m"
+handshake = "10s"
+
+[defense.anti-replay]
+enabled = true
+max-size = "1mib"
+
+# Blocklist disabled to prevent false-positive bans of client/loopback subnets
+[defense.blocklist]
+enabled = false
+`;
+
+    if (socks5) {
+      toml += `
+[network]
+proxies = [
+  ${JSON.stringify(socks5)}
+]
+`;
+    }
+
+    return toml;
+  }
+
   start() {
     if (!this.config.enable.mtproto || !fs.existsSync(this.paths.mtgBin)) {
       Logger.warn('mtg binary missing or MTProto disabled. MTProto engine skipped.');
@@ -27,17 +68,15 @@ class MtgEngine {
     const maxLogSize = (this.config.maxLogSizeMb || 5) * 1024 * 1024;
     rotateLogIfNeeded(this.paths.mtgLog, maxLogSize);
 
-    const concurrency = String((this.config.mtproto && this.config.mtproto.concurrency) || 512);
-    const preferIp = (this.config.mtproto && this.config.mtproto.preferIp) || 'prefer-ipv4';
+    // Write robust TOML config with generous time skew and disabled FireHOL blocklist
+    const tomlContent = this.buildTomlConfig(secret);
+    try {
+      fs.writeFileSync(this.paths.mtgConfig, tomlContent, 'utf8');
+    } catch (err) {
+      Logger.warn(`Failed to write mtg.toml: ${err.message}`);
+    }
 
-    const args = [
-      'simple-run',
-      `127.0.0.1:${this.port}`,
-      secret,
-      '--concurrency', concurrency,
-      '--prefer-ip', preferIp,
-      '--antireplay-cache-size', '1MB'
-    ];
+    const args = ['run', this.paths.mtgConfig];
 
     Logger.step(`Launching Telegram MTProto proxy (mtg) on local port ${this.port}...`);
     const logFd = fs.openSync(this.paths.mtgLog, 'a');

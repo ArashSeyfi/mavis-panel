@@ -5,15 +5,33 @@ const { ensureTlsCertificates } = require('../cert');
 const { Logger } = require('../logger');
 
 class TcpRouter {
-  constructor(config, targetPorts, expressServer, expressApp) {
+  constructor(config, targetPorts, expressServer, expressApp, stateManager = null) {
     this.config = config;
     this.ports = targetPorts;
     this.httpServer = expressServer;
     this.expressApp = expressApp || (expressServer && expressServer.listeners('request')[0]);
+    this.stateManager = stateManager;
     this.server = null;
     this.httpsServer = null;
     this.internalHttpsPort = null;
     this.mtprotoServer = null;
+  }
+
+  getMtprotoSniList() {
+    const list = new Set();
+    const cfgSni = (this.config.mtproto && this.config.mtproto.sni) || 'www.google.com';
+    list.add(cfgSni.toLowerCase().trim().replace(/\.$/, ''));
+
+    const sec = this.stateManager?.state?.mtprotoSecret || (this.config.mtproto && this.config.mtproto.secret);
+    if (sec && typeof sec === 'string' && sec.toLowerCase().startsWith('ee') && sec.length > 34) {
+      try {
+        const domainHex = sec.slice(34);
+        const domain = Buffer.from(domainHex, 'hex').toString('ascii').trim().toLowerCase().replace(/\.$/, '');
+        if (domain) list.add(domain);
+      } catch {}
+    }
+
+    return Array.from(list);
   }
 
   pipeToBackend(clientSocket, firstChunk, targetPort, label) {
@@ -187,8 +205,9 @@ class TcpRouter {
 
           // Priority 0: MTProto fake-TLS check (by SNI match)
           if (this.config.enable.mtproto && this.ports.mtproto && sni) {
-            const mtgSni = ((this.config.mtproto && this.config.mtproto.sni) || 'dns.google').toLowerCase();
-            if (sni.toLowerCase() === mtgSni) {
+            const cleanSni = sni.toLowerCase().trim().replace(/\.$/, '');
+            const allowedMtg = this.getMtprotoSniList();
+            if (allowedMtg.includes(cleanSni)) {
               target = { port: this.ports.mtproto, label: 'MTProto' };
             }
           }
