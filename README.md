@@ -42,6 +42,20 @@ Or with docker-compose:
 docker compose up -d
 ```
 
+## Cloudflare Workers (Serverless Edge)
+
+Deploy Mavis Panel directly to Cloudflare Workers with native VLESS over WebSocket, subscription generation (Base64, Clash Meta, Sing-box), and clean IP routing:
+
+```bash
+# 1. Setup credentials in .env
+cp .env.example .env
+# Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in .env
+
+# 2. Deploy to Cloudflare Workers
+npm run deploy:worker
+```
+
+
 ## Environment variables
 
 | Variable | Default | What it does |

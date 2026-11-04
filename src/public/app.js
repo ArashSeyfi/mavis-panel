@@ -198,6 +198,13 @@ async function loadData() {
     set('nodesLocation', loc);
 
     const engines = [];
+    if (data.engines?.worker) {
+      engines.push('Cloudflare Worker');
+      const protoContainer = document.getElementById('protoTagsContainer');
+      if (protoContainer) {
+        protoContainer.innerHTML = '<span class="proto-tag">VLESS</span><span class="proto-tag">WebSocket</span><span class="proto-tag">TLS</span><span class="proto-tag">CF Edge</span><span class="proto-tag">Clean IP</span>';
+      }
+    }
     if (data.engines?.singbox) engines.push('sing-box');
     if (data.engines?.xray) engines.push('xray');
     if (data.engines?.argo) engines.push('argo');
@@ -236,9 +243,15 @@ async function loadData() {
       val('urlMtproto', mtUri);
       const tgBtn = document.getElementById('btnConnectTg');
       if (tgBtn) tgBtn.href = mtConnect;
+      const subRowMtproto = document.getElementById('subRowMtproto');
+      if (subRowMtproto) subRowMtproto.style.display = mtNode ? '' : 'none';
 
+      const wgNode = data.nodes?.find(n => n.type === 'WireGuard' || n.wgConf);
+      val('urlWgConf', `${origin}/${prefix}/wg.conf`);
       const dlBtn = document.getElementById('btnDownloadWg');
       if (dlBtn) dlBtn.href = `${origin}/${prefix}/wg.conf`;
+      const subRowWg = document.getElementById('subRowWg');
+      if (subRowWg) subRowWg.style.display = wgNode ? '' : 'none';
     };
 
     updateSubs(activeProto);
