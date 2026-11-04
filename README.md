@@ -5,7 +5,7 @@ Single-port proxy multiplexer with a web panel. Routes TLS, HTTP, WebSocket, gRP
 ## What it does
 
 - Multiplexes all proxy traffic through a single TCP port
-- Supports VLESS, Trojan, VMess, Shadowsocks, WireGuard, and Reality
+- Supports VLESS, Trojan, VMess, Shadowsocks, WireGuard, Reality, and Telegram MTProto (Fake-TLS)
 - Generates subscription links for v2rayNG, Hiddify, Clash Meta, Streisand, etc.
 - Provides direct connection URIs with copy/QR
 - Optional Cloudflare Argo tunnel integration
@@ -94,4 +94,7 @@ MIT
 
 ---
 
-Made by Arash Seyfi
+## Credits & Attribution
+
+- **Developed by:** [4rsh14](https://github.com/4rsh14)
+- **Core Origin:** Forked from Arash Seyfi's original project
