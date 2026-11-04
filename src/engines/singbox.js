@@ -3,7 +3,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 const { ensureTlsCertificates } = require('../cert');
-const { Logger } = require('../logger');
+const { Logger, rotateLogIfNeeded } = require('../logger');
 
 class SingBoxEngine {
   constructor(config, stateManager, allocatedPorts) {
@@ -12,6 +12,7 @@ class SingBoxEngine {
     this.stateManager = stateManager;
     this.ports = allocatedPorts;
     this.process = null;
+    this.logRotatorTimer = null;
   }
 
   generateRealityKeys() {
@@ -319,9 +320,12 @@ class SingBoxEngine {
       });
     }
 
+    let logLevel = (this.config.logLevel || this.config.singboxLogLevel || 'warn').toLowerCase();
+    if (logLevel === 'warning') logLevel = 'warn';
+
     const cfg = {
       log: {
-        level: 'info',
+        level: logLevel,
         timestamp: true
       },
       inbounds,
@@ -439,17 +443,29 @@ class SingBoxEngine {
     fs.writeFileSync(this.paths.singboxConfig, JSON.stringify(configData, null, 2), 'utf8');
     Logger.success('sing-box configuration validated.');
 
+    const maxLogSize = (this.config.maxLogSizeMb || 5) * 1024 * 1024;
+    rotateLogIfNeeded(this.paths.singboxLog, maxLogSize);
+
     const logFd = fs.openSync(this.paths.singboxLog, 'a');
     this.process = spawn(this.paths.singboxBin, ['run', '-c', this.paths.singboxConfig], {
       stdio: ['ignore', logFd, logFd],
       detached: false
     });
 
+    this.logRotatorTimer = setInterval(() => {
+      rotateLogIfNeeded(this.paths.singboxLog, maxLogSize);
+    }, 60000);
+    if (this.logRotatorTimer.unref) this.logRotatorTimer.unref();
+
     this.process.on('error', (err) => {
       Logger.error(`sing-box process error: ${err.message}`);
     });
 
     this.process.on('exit', (code, sig) => {
+      if (this.logRotatorTimer) {
+        clearInterval(this.logRotatorTimer);
+        this.logRotatorTimer = null;
+      }
       try { fs.closeSync(logFd); } catch {}
       if (code !== 0 && code !== null) {
         Logger.warn(`sing-box exited with code ${code} (${sig || 'none'})`);
@@ -460,6 +476,10 @@ class SingBoxEngine {
   }
 
   stop() {
+    if (this.logRotatorTimer) {
+      clearInterval(this.logRotatorTimer);
+      this.logRotatorTimer = null;
+    }
     if (this.process && !this.process.killed) {
       try {
         this.process.kill('SIGTERM');

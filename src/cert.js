@@ -64,10 +64,14 @@ function generateSelfSignedCert(commonName = 'localhost') {
 function ensureTlsCertificates(certPath, keyPath, sni = 'localhost') {
   try {
     if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
-      const c = fs.readFileSync(certPath, 'utf8');
-      const k = fs.readFileSync(keyPath, 'utf8');
-      if (c.includes('BEGIN CERTIFICATE') && k.includes('PRIVATE KEY')) {
-        return { cert: c, key: k };
+      const cStat = fs.statSync(certPath);
+      const kStat = fs.statSync(keyPath);
+      if (cStat.size < 1024 * 1024 && kStat.size < 1024 * 1024) {
+        const c = fs.readFileSync(certPath, 'utf8');
+        const k = fs.readFileSync(keyPath, 'utf8');
+        if (c.includes('BEGIN CERTIFICATE') && k.includes('PRIVATE KEY')) {
+          return { cert: c, key: k };
+        }
       }
     }
   } catch (_) {}
@@ -87,10 +91,14 @@ function ensureTlsCertificates(certPath, keyPath, sni = 'localhost') {
       '-days', '365'
     ], { timeout: 15000 });
     if (res.status === 0 && fs.existsSync(certPath) && fs.existsSync(keyPath)) {
-      return {
-        cert: fs.readFileSync(certPath, 'utf8'),
-        key: fs.readFileSync(keyPath, 'utf8')
-      };
+      const cStat = fs.statSync(certPath);
+      const kStat = fs.statSync(keyPath);
+      if (cStat.size < 1024 * 1024 && kStat.size < 1024 * 1024) {
+        return {
+          cert: fs.readFileSync(certPath, 'utf8'),
+          key: fs.readFileSync(keyPath, 'utf8')
+        };
+      }
     }
   } catch (_) {}
 

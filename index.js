@@ -46,8 +46,11 @@ class AssetManager {
         const full = path.join(d, name);
         try {
           if (fs.existsSync(full)) {
-            const buf = fs.readFileSync(full);
-            if (buf && buf.length > 0) return buf;
+            const stat = fs.statSync(full);
+            if (stat.size > 0 && stat.size <= 2 * 1024 * 1024) {
+              const buf = fs.readFileSync(full);
+              if (buf && buf.length > 0) return buf;
+            }
           }
         } catch (_) {}
       }
@@ -225,6 +228,97 @@ class Logger {
       console.log(`\n${ANSI.bold}${ANSI.electric}--- ${title} ---${ANSI.reset}`);
     }
   }
+
+  static readTailSync(filePath, maxBytes) {
+    return readTailSync(filePath, maxBytes);
+  }
+
+  static rotateLogIfNeeded(filePath, maxSizeBytes, retainBytes) {
+    return rotateLogIfNeeded(filePath, maxSizeBytes, retainBytes);
+  }
+}
+
+/**
+ * Safe, bounded tail reader: reads up to maxBytes from the end of a file.
+ * Allocates at most maxBytes in memory, preventing high memory usage or OOM.
+ * @param {string} filePath - Path to file
+ * @param {number} maxBytes - Maximum number of bytes to read from end of file (default 64KB)
+ * @returns {string} - Tail text as UTF-8 string, or empty string on error / missing file
+ */
+function readTailSync(filePath, maxBytes = 64 * 1024) {
+  try {
+    if (!filePath || typeof filePath !== 'string' || !fs.existsSync(filePath)) return '';
+    const stat = fs.statSync(filePath);
+    if (!stat.size || stat.size <= 0) return '';
+    const bytesToRead = Math.min(stat.size, maxBytes);
+    const buffer = Buffer.alloc(bytesToRead);
+    const fd = fs.openSync(filePath, 'r');
+    try {
+      const position = stat.size - bytesToRead;
+      fs.readSync(fd, buffer, 0, bytesToRead, position);
+      return buffer.toString('utf8');
+    } finally {
+      try { fs.closeSync(fd); } catch {}
+    }
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Safe log rotation & in-place truncation helper:
+ * If the log file exceeds maxSizeBytes, truncates it in-place and preserves the last retainBytes.
+ * Using in-place write keeps open O_APPEND file descriptors held by child processes valid.
+ * @param {string} filePath - Path to log file
+ * @param {number} maxSizeBytes - Size threshold to trigger rotation (default 5MB)
+ * @param {number} retainBytes - Number of recent bytes to retain from tail (default 256KB)
+ * @returns {boolean} - True if truncated/rotated, false otherwise
+ */
+function rotateLogIfNeeded(filePath, maxSizeBytes = 5 * 1024 * 1024, retainBytes = 256 * 1024) {
+  try {
+    if (!filePath || typeof filePath !== 'string' || !fs.existsSync(filePath)) return false;
+    const stat = fs.statSync(filePath);
+    if (stat.size < maxSizeBytes) return false;
+
+    const bytesToKeep = Math.min(stat.size, retainBytes);
+    let tailBuffer = null;
+    if (bytesToKeep > 0) {
+      tailBuffer = Buffer.alloc(bytesToKeep);
+      const rfd = fs.openSync(filePath, 'r');
+      try {
+        fs.readSync(rfd, tailBuffer, 0, bytesToKeep, stat.size - bytesToKeep);
+      } finally {
+        try { fs.closeSync(rfd); } catch {}
+      }
+
+      // If we trimmed from the middle of the file, strip any initial broken line
+      if (bytesToKeep < stat.size) {
+        const newlineIdx = tailBuffer.indexOf(0x0a);
+        if (newlineIdx !== -1 && newlineIdx < tailBuffer.length - 1) {
+          tailBuffer = tailBuffer.subarray(newlineIdx + 1);
+        }
+      }
+    }
+
+    const prevMb = (stat.size / (1024 * 1024)).toFixed(2);
+    const header = Buffer.from(
+      `\n--- [LOG ROTATED & TRUNCATED at ${new Date().toISOString()} (previous size: ${prevMb} MB)] ---\n`,
+      'utf8'
+    );
+
+    const wfd = fs.openSync(filePath, 'w');
+    try {
+      fs.writeSync(wfd, header);
+      if (tailBuffer && tailBuffer.length > 0) {
+        fs.writeSync(wfd, tailBuffer);
+      }
+    } finally {
+      try { fs.closeSync(wfd); } catch {}
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 
@@ -309,7 +403,9 @@ const DEFAULT_CONFIG = {
   xrayVersion: '',
   panelToken: '',
   cpuLimitPercent: null,
-  quietConsoleAfterMs: 180000
+  quietConsoleAfterMs: 180000,
+  logLevel: 'warn',
+  maxLogSizeMb: 5
 };
 
 /**
@@ -429,6 +525,14 @@ function buildConfig(userOverrides = {}) {
 
   if (env.CPU_LIMIT_PERCENT) cfg.cpuLimitPercent = parseInt(env.CPU_LIMIT_PERCENT, 10);
 
+  if (env.LOG_LEVEL || env.SINGBOX_LOG_LEVEL) cfg.logLevel = (env.LOG_LEVEL || env.SINGBOX_LOG_LEVEL).toLowerCase();
+  if (env.XRAY_LOG_LEVEL) cfg.xrayLogLevel = env.XRAY_LOG_LEVEL.toLowerCase();
+  if (env.ARGO_LOG_LEVEL) cfg.argoLogLevel = env.ARGO_LOG_LEVEL.toLowerCase();
+  if (env.MAX_LOG_SIZE_MB) {
+    const parsedMb = parseInt(env.MAX_LOG_SIZE_MB, 10);
+    if (!isNaN(parsedMb) && parsedMb > 0) cfg.maxLogSizeMb = parsedMb;
+  }
+
   // Data paths
   const dataDir = resolveDataDir(cfg.dataDirHint);
   const paths = {
@@ -537,9 +641,12 @@ class StateManager {
     try {
       fs.mkdirSync(this.paths.dataDir, { recursive: true });
       if (fs.existsSync(this.paths.stateFile)) {
-        const raw = fs.readFileSync(this.paths.stateFile, 'utf8');
-        const parsed = JSON.parse(raw);
-        this.state = { ...this.state, ...parsed };
+        const stat = fs.statSync(this.paths.stateFile);
+        if (stat.size > 0 && stat.size < 1024 * 1024) {
+          const raw = fs.readFileSync(this.paths.stateFile, 'utf8');
+          const parsed = JSON.parse(raw);
+          this.state = { ...this.state, ...parsed };
+        }
       }
     } catch (err) {
       Logger.warn(`Failed to read existing state.json: ${err.message}. Generating fresh state.`);
@@ -967,10 +1074,14 @@ function generateSelfSignedCert(commonName = 'localhost') {
 function ensureTlsCertificates(certPath, keyPath, sni = 'localhost') {
   try {
     if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
-      const c = fs.readFileSync(certPath, 'utf8');
-      const k = fs.readFileSync(keyPath, 'utf8');
-      if (c.includes('BEGIN CERTIFICATE') && k.includes('PRIVATE KEY')) {
-        return { cert: c, key: k };
+      const cStat = fs.statSync(certPath);
+      const kStat = fs.statSync(keyPath);
+      if (cStat.size < 1024 * 1024 && kStat.size < 1024 * 1024) {
+        const c = fs.readFileSync(certPath, 'utf8');
+        const k = fs.readFileSync(keyPath, 'utf8');
+        if (c.includes('BEGIN CERTIFICATE') && k.includes('PRIVATE KEY')) {
+          return { cert: c, key: k };
+        }
       }
     }
   } catch (_) {}
@@ -990,10 +1101,14 @@ function ensureTlsCertificates(certPath, keyPath, sni = 'localhost') {
       '-days', '365'
     ], { timeout: 15000 });
     if (res.status === 0 && fs.existsSync(certPath) && fs.existsSync(keyPath)) {
-      return {
-        cert: fs.readFileSync(certPath, 'utf8'),
-        key: fs.readFileSync(keyPath, 'utf8')
-      };
+      const cStat = fs.statSync(certPath);
+      const kStat = fs.statSync(keyPath);
+      if (cStat.size < 1024 * 1024 && kStat.size < 1024 * 1024) {
+        return {
+          cert: fs.readFileSync(certPath, 'utf8'),
+          key: fs.readFileSync(keyPath, 'utf8')
+        };
+      }
     }
   } catch (_) {}
 
@@ -1018,6 +1133,7 @@ class SingBoxEngine {
     this.stateManager = stateManager;
     this.ports = allocatedPorts;
     this.process = null;
+    this.logRotatorTimer = null;
   }
 
   generateRealityKeys() {
@@ -1325,9 +1441,12 @@ class SingBoxEngine {
       });
     }
 
+    let logLevel = (this.config.logLevel || this.config.singboxLogLevel || 'warn').toLowerCase();
+    if (logLevel === 'warning') logLevel = 'warn';
+
     const cfg = {
       log: {
-        level: 'info',
+        level: logLevel,
         timestamp: true
       },
       inbounds,
@@ -1445,17 +1564,29 @@ class SingBoxEngine {
     fs.writeFileSync(this.paths.singboxConfig, JSON.stringify(configData, null, 2), 'utf8');
     Logger.success('sing-box configuration validated.');
 
+    const maxLogSize = (this.config.maxLogSizeMb || 5) * 1024 * 1024;
+    rotateLogIfNeeded(this.paths.singboxLog, maxLogSize);
+
     const logFd = fs.openSync(this.paths.singboxLog, 'a');
     this.process = spawn(this.paths.singboxBin, ['run', '-c', this.paths.singboxConfig], {
       stdio: ['ignore', logFd, logFd],
       detached: false
     });
 
+    this.logRotatorTimer = setInterval(() => {
+      rotateLogIfNeeded(this.paths.singboxLog, maxLogSize);
+    }, 60000);
+    if (this.logRotatorTimer.unref) this.logRotatorTimer.unref();
+
     this.process.on('error', (err) => {
       Logger.error(`sing-box process error: ${err.message}`);
     });
 
     this.process.on('exit', (code, sig) => {
+      if (this.logRotatorTimer) {
+        clearInterval(this.logRotatorTimer);
+        this.logRotatorTimer = null;
+      }
       try { fs.closeSync(logFd); } catch {}
       if (code !== 0 && code !== null) {
         Logger.warn(`sing-box exited with code ${code} (${sig || 'none'})`);
@@ -1466,6 +1597,10 @@ class SingBoxEngine {
   }
 
   stop() {
+    if (this.logRotatorTimer) {
+      clearInterval(this.logRotatorTimer);
+      this.logRotatorTimer = null;
+    }
     if (this.process && !this.process.killed) {
       try {
         this.process.kill('SIGTERM');
@@ -1483,15 +1618,19 @@ class XrayEngine {
     this.stateManager = stateManager;
     this.port = localPort;
     this.process = null;
+    this.logRotatorTimer = null;
   }
 
   buildConfig() {
     const state = this.stateManager.state;
     const xhttpPath = `/${this.config.panelPath}-xh`;
 
+    let xrayLogLevel = (this.config.xrayLogLevel || this.config.logLevel || 'warning').toLowerCase();
+    if (xrayLogLevel === 'warn') xrayLogLevel = 'warning';
+
     return {
       log: {
-        loglevel: 'warning'
+        loglevel: xrayLogLevel
       },
       inbounds: [
         {
@@ -1533,17 +1672,29 @@ class XrayEngine {
     const cfg = this.buildConfig();
     fs.writeFileSync(this.paths.xrayConfig, JSON.stringify(cfg, null, 2), 'utf8');
 
+    const maxLogSize = (this.config.maxLogSizeMb || 5) * 1024 * 1024;
+    rotateLogIfNeeded(this.paths.xrayLog, maxLogSize);
+
     const logFd = fs.openSync(this.paths.xrayLog, 'a');
     this.process = spawn(this.paths.xrayBin, ['run', '-c', this.paths.xrayConfig], {
       stdio: ['ignore', logFd, logFd],
       detached: false
     });
 
+    this.logRotatorTimer = setInterval(() => {
+      rotateLogIfNeeded(this.paths.xrayLog, maxLogSize);
+    }, 60000);
+    if (this.logRotatorTimer.unref) this.logRotatorTimer.unref();
+
     this.process.on('error', (err) => {
       Logger.warn(`Xray engine error: ${err.message}`);
     });
 
     this.process.on('exit', () => {
+      if (this.logRotatorTimer) {
+        clearInterval(this.logRotatorTimer);
+        this.logRotatorTimer = null;
+      }
       try { fs.closeSync(logFd); } catch {}
     });
 
@@ -1552,6 +1703,10 @@ class XrayEngine {
   }
 
   stop() {
+    if (this.logRotatorTimer) {
+      clearInterval(this.logRotatorTimer);
+      this.logRotatorTimer = null;
+    }
     if (this.process && !this.process.killed) {
       try {
         this.process.kill('SIGTERM');
@@ -1569,6 +1724,7 @@ class ArgoTunnel {
     this.targetPort = targetPort;
     this.process = null;
     this.tunnelDomain = '';
+    this.logRotatorTimer = null;
   }
 
   async discoverDomain(timeoutMs = 45000) {
@@ -1583,15 +1739,15 @@ class ArgoTunnel {
         } catch {}
       }
 
-      if (fs.existsSync(this.paths.cloudflaredLog)) {
-        try {
-          const logContent = fs.readFileSync(this.paths.cloudflaredLog, 'utf8');
+      try {
+        const logContent = readTailSync(this.paths.cloudflaredLog, 64 * 1024);
+        if (logContent) {
           const match = logContent.match(/https?:\/\/([a-z0-9-]+\.trycloudflare\.com)/i);
           if (match) {
             return match[1].toLowerCase();
           }
-        } catch {}
-      }
+        }
+      } catch {}
 
       await new Promise(r => setTimeout(r, 2000));
     }
@@ -1612,17 +1768,33 @@ class ArgoTunnel {
 
     // Quick tunnel
     Logger.step('Launching Cloudflare Argo Quick Tunnel...');
+    const maxLogSize = (this.config.maxLogSizeMb || 5) * 1024 * 1024;
+    rotateLogIfNeeded(this.paths.cloudflaredLog, maxLogSize);
     const logFd = fs.openSync(this.paths.cloudflaredLog, 'a');
 
+    let argoLogLevel = (this.config.argoLogLevel || this.config.logLevel || 'warn').toLowerCase();
+    if (argoLogLevel === 'warning') argoLogLevel = 'warn';
+
     this.process = spawn(this.paths.cloudflaredBin, [
-      'tunnel', '--no-autoupdate', '--metrics', '127.0.0.1:2000',
+      'tunnel', '--no-autoupdate',
+      '--loglevel', argoLogLevel,
+      '--metrics', '127.0.0.1:2000',
       '--url', `http://127.0.0.1:${this.targetPort}`
     ], {
       stdio: ['ignore', logFd, logFd],
       detached: false
     });
 
+    this.logRotatorTimer = setInterval(() => {
+      rotateLogIfNeeded(this.paths.cloudflaredLog, maxLogSize);
+    }, 60000);
+    if (this.logRotatorTimer.unref) this.logRotatorTimer.unref();
+
     this.process.on('exit', () => {
+      if (this.logRotatorTimer) {
+        clearInterval(this.logRotatorTimer);
+        this.logRotatorTimer = null;
+      }
       try { fs.closeSync(logFd); } catch {}
     });
 
@@ -1637,6 +1809,10 @@ class ArgoTunnel {
   }
 
   stop() {
+    if (this.logRotatorTimer) {
+      clearInterval(this.logRotatorTimer);
+      this.logRotatorTimer = null;
+    }
     if (this.process && !this.process.killed) {
       try { this.process.kill('SIGTERM'); } catch {}
     }
@@ -3310,6 +3486,14 @@ async function startGate(userConfig = {}) {
   Logger.item('Panel Path', `/${config.panelPath}`);
   Logger.item('Data Directory', config.paths.dataDir);
 
+  // Pre-flight check: truncate any oversized existing log files to immediately reclaim disk space
+  const maxLogSize = (config.maxLogSizeMb || 5) * 1024 * 1024;
+  for (const logPath of [config.paths.singboxLog, config.paths.xrayLog, config.paths.cloudflaredLog]) {
+    if (rotateLogIfNeeded(logPath, maxLogSize)) {
+      Logger.info(`Reclaimed disk space: truncated oversized log (${path.basename(logPath)})`);
+    }
+  }
+
   // 3. Persistent state
   const stateMgr = new StateManager(config.paths, config);
   const state = stateMgr.loadOrCreate();
@@ -3439,5 +3623,10 @@ if (require.main === module) {
 module.exports = {
   MAVIS_CONFIG,
   BK_CONFIG: MAVIS_CONFIG,
-  startGate
+  DEFAULT_CONFIG,
+  buildConfig,
+  startGate,
+  Logger,
+  readTailSync,
+  rotateLogIfNeeded
 };
