@@ -29,6 +29,7 @@ class StateManager {
       realityShortId: '',
       shadowTlsPassword: '',
       shadowsocksPassword: '',
+      mtprotoSecret: '',
       wireguardPrivateKey: '',
       wireguardPublicKey: '',
       wireguardClientPrivateKey: '',
@@ -92,6 +93,14 @@ class StateManager {
       this.state.realityShortId = crypto.randomBytes(4).toString('hex');
     }
 
+    // MTProto Fake-TLS Secret
+    if (this.config.mtproto && this.config.mtproto.secret) {
+      this.state.mtprotoSecret = this.config.mtproto.secret;
+    } else if (!this.state.mtprotoSecret) {
+      const sni = (this.config.mtproto && this.config.mtproto.sni) || 'dns.google';
+      this.state.mtprotoSecret = 'ee' + crypto.randomBytes(16).toString('hex') + Buffer.from(sni, 'ascii').toString('hex');
+    }
+
     // WireGuard
     const isValidKey = (k) => typeof k === 'string' && k.trim().length >= 40;
     let srvPriv = this.state.wireguardPrivateKey;
@@ -137,6 +146,11 @@ class StateManager {
   setRealityKeys(privateKey, publicKey) {
     this.state.realityPrivateKey = privateKey;
     this.state.realityPublicKey = publicKey;
+    this.save();
+  }
+
+  setMtprotoSecret(secret) {
+    this.state.mtprotoSecret = secret;
     this.save();
   }
 

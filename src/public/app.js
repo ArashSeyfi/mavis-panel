@@ -134,15 +134,20 @@ function renderNodes(nodes) {
     else if (lt.includes('shadowsocks') || lt.includes('ss')) proto = 'SS';
     else if (lt.includes('wireguard') || lt.includes('wg')) proto = 'WG';
     else if (lt.includes('tuic')) proto = 'TUIC';
+    else if (lt.includes('mtproto') || lt.includes('tg')) proto = 'MTProto';
 
     let badges = '';
-    if (lt.includes('ws')) badges += '<span class="node-badge">WS</span>';
-    else if (lt.includes('httpupgrade')) badges += '<span class="node-badge">HTTPUpgrade</span>';
-    else if (lt.includes('grpc')) badges += '<span class="node-badge">gRPC</span>';
-    else if (lt.includes('xhttp')) badges += '<span class="node-badge">XHTTP</span>';
+    if (lt.includes('mtproto') || lt.includes('tg')) {
+      badges += '<span class="node-badge">Telegram</span><span class="node-badge">Fake-TLS</span>';
+    } else {
+      if (lt.includes('ws')) badges += '<span class="node-badge">WS</span>';
+      else if (lt.includes('httpupgrade')) badges += '<span class="node-badge">HTTPUpgrade</span>';
+      else if (lt.includes('grpc')) badges += '<span class="node-badge">gRPC</span>';
+      else if (lt.includes('xhttp')) badges += '<span class="node-badge">XHTTP</span>';
 
-    if (lt.includes('reality')) badges += '<span class="node-badge">Reality</span>';
-    else if (lt.includes('tls')) badges += '<span class="node-badge">TLS</span>';
+      if (lt.includes('reality')) badges += '<span class="node-badge">Reality</span>';
+      else if (lt.includes('tls')) badges += '<span class="node-badge">TLS</span>';
+    }
 
     const eu = encodeURIComponent(node.uri);
 
@@ -156,6 +161,7 @@ function renderNodes(nodes) {
       <div class="node-actions">
         <button type="button" class="btn" data-action="copy-text" data-text="${eu}">Copy</button>
         <button type="button" class="btn" data-action="qr-text" data-text="${eu}" data-title="${encodeURIComponent(name)}">QR</button>
+        ${node.tmeUri ? `<a href="${esc(node.tmeUri)}" class="btn" target="_blank">Connect</a>` : ''}
       </div>
     </div>`;
   });
@@ -195,6 +201,7 @@ async function loadData() {
     if (data.engines?.singbox) engines.push('sing-box');
     if (data.engines?.xray) engines.push('xray');
     if (data.engines?.argo) engines.push('argo');
+    if (data.engines?.mtproto) engines.push('mtg');
     set('homeEngine', engines.join(' + ') || 'sing-box');
 
     let activeProto = (data.forceHttps || window.location.protocol === 'https:') ? 'https:' : 'http:';
@@ -222,6 +229,13 @@ async function loadData() {
       val('urlClash', `${origin}/${prefix}/clash`);
       val('urlSb', `${origin}/${prefix}/sb/raw`);
       val('urlWgConf', `${origin}/${prefix}/wg.conf`);
+
+      const mtNode = data.nodes?.find(n => n.type === 'MTProto');
+      const mtUri = mtNode ? mtNode.uri : `${origin}/${prefix}/tg`;
+      const mtConnect = mtNode ? (mtNode.tmeUri || mtNode.uri) : `${origin}/${prefix}/tg`;
+      val('urlMtproto', mtUri);
+      const tgBtn = document.getElementById('btnConnectTg');
+      if (tgBtn) tgBtn.href = mtConnect;
 
       const dlBtn = document.getElementById('btnDownloadWg');
       if (dlBtn) dlBtn.href = `${origin}/${prefix}/wg.conf`;

@@ -131,6 +131,7 @@ function createHttpPanel(config, stateManager, engineStatusGetter, resolvedHostG
         type: node.type,
         compat: node.compat,
         uri: node.uri,
+        tmeUri: node.tmeUri || null,
         wgConf: node.wgConf || null,
         singboxJson: node.singboxJson || null,
         note: node.note || null
@@ -260,6 +261,29 @@ function createHttpPanel(config, stateManager, engineStatusGetter, resolvedHostG
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       res.status(200).send('# WireGuard configuration failed gracefully.\n');
+    }
+  });
+
+  // Telegram MTProto Direct Link & Redirect
+  app.get([`/${panelPath}/tg`, `/${panelPath}/mtproto`, '/tg', '/mtproto'], authMiddleware, (req, res) => {
+    try {
+      const host = getRequestHost(req);
+      const linkGen = new LinkGenerator(config, stateManager.state, host);
+      const node = linkGen.generateMtproto();
+      if (!node) {
+        return res.status(404).send('MTProto proxy is disabled or not configured.\n');
+      }
+
+      const accept = req.headers.accept || '';
+      if (accept.includes('text/html') && !req.query.raw) {
+        return res.redirect(node.tmeUri);
+      }
+
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.send(`${node.uri}\n${node.tmeUri}\n`);
+    } catch (err) {
+      res.status(500).send(`MTProto endpoint error: ${err.message}\n`);
     }
   });
 

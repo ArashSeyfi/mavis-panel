@@ -11,9 +11,9 @@ const { Logger } = require('./logger');
 function getNormalizedArch() {
   const arch = os.arch();
   if (arch === 'arm64' || arch === 'aarch64') {
-    return { sb: 'arm64', xray: 'arm64-v8a', cf: 'arm64' };
+    return { sb: 'arm64', xray: 'arm64-v8a', cf: 'arm64', mtg: 'arm64' };
   }
-  return { sb: 'amd64', xray: '64', cf: 'amd64' };
+  return { sb: 'amd64', xray: '64', cf: 'amd64', mtg: 'amd64' };
 }
 
 /**
@@ -241,6 +241,109 @@ class BinaryManager {
       return true;
     } catch (err) {
       Logger.warn(`Optional cloudflared download skipped: ${err.message}. Argo tunnel will be inactive.`);
+      return false;
+    }
+  }
+
+  async ensureMtg() {
+    this.ensureDirectories();
+    const bin = this.paths.mtgBin;
+
+    if (fs.existsSync(bin)) {
+      try {
+        const stat = fs.statSync(bin);
+        if (stat.size > 1024 * 1024) {
+          if (os.platform() !== 'win32') fs.chmodSync(bin, 0o755);
+          return true;
+        }
+      } catch {}
+    }
+
+    const freeMb = checkDiskSpaceMb(this.paths.binDir);
+    if (freeMb !== null && freeMb < 30) {
+      Logger.warn(`Low disk space (~${freeMb}MB free). Skipping MTProto (mtg) download.`);
+      return false;
+    }
+
+    const ver = this.config.mtgVersion || '2.2.8';
+    const osType = os.platform() === 'win32' ? 'windows' : 'linux';
+    const arch = this.arch.mtg || (this.arch.sb === 'arm64' ? 'arm64' : 'amd64');
+    const ext = osType === 'windows' ? 'zip' : 'tar.gz';
+    const tarName = `mtg-${ver}-${osType}-${arch}.${ext}`;
+    const url = process.env.MTG_URL || `https://github.com/9seconds/mtg/releases/download/v${ver}/${tarName}`;
+    const archivePath = path.join(this.paths.binDir, tarName);
+
+    Logger.step(`Downloading Telegram MTProto engine (mtg v${ver} for ${osType}-${arch})...`);
+
+    try {
+      await downloadToFile(url, archivePath);
+
+      if (osType === 'linux') {
+        const extDir = path.join(this.paths.binDir, `mtg_extract_${Date.now()}`);
+        fs.mkdirSync(extDir, { recursive: true });
+        const tarRes = spawnSync('tar', ['-xzf', archivePath, '-C', extDir]);
+        if (tarRes.status !== 0) throw new Error(`tar extraction failed: ${tarRes.stderr}`);
+
+        const files = fs.readdirSync(extDir);
+        let foundBin = null;
+        for (const f of files) {
+          const sub = path.join(extDir, f);
+          if (fs.statSync(sub).isDirectory()) {
+            const candidate = path.join(sub, 'mtg');
+            if (fs.existsSync(candidate)) {
+              foundBin = candidate;
+              break;
+            }
+          }
+        }
+
+        if (!foundBin && fs.existsSync(path.join(extDir, 'mtg'))) {
+          foundBin = path.join(extDir, 'mtg');
+        }
+
+        if (!foundBin) throw new Error('mtg binary not found in archive');
+
+        fs.copyFileSync(foundBin, bin);
+        fs.chmodSync(bin, 0o755);
+
+        try {
+          fs.unlinkSync(archivePath);
+          fs.rmSync(extDir, { recursive: true, force: true });
+        } catch {}
+      } else {
+        const extDir = path.join(this.paths.binDir, `mtg_extract_${Date.now()}`);
+        fs.mkdirSync(extDir, { recursive: true });
+        const unzipRes = spawnSync('unzip', ['-o', archivePath, '-d', extDir]);
+        let foundBin = null;
+        if (unzipRes.status === 0) {
+          const files = fs.readdirSync(extDir);
+          for (const f of files) {
+            const sub = path.join(extDir, f);
+            if (fs.statSync(sub).isDirectory()) {
+              const candidate = path.join(sub, 'mtg.exe');
+              if (fs.existsSync(candidate)) {
+                foundBin = candidate;
+                break;
+              }
+            }
+          }
+        }
+        if (!foundBin && fs.existsSync(path.join(extDir, 'mtg.exe'))) {
+          foundBin = path.join(extDir, 'mtg.exe');
+        }
+        if (foundBin) {
+          fs.copyFileSync(foundBin, bin);
+        }
+        try {
+          fs.unlinkSync(archivePath);
+          fs.rmSync(extDir, { recursive: true, force: true });
+        } catch {}
+      }
+
+      Logger.success('Telegram MTProto engine (mtg) installed successfully.');
+      return true;
+    } catch (err) {
+      Logger.warn(`Optional MTProto (mtg) download skipped: ${err.message}. MTProto proxy will be inactive.`);
       return false;
     }
   }

@@ -132,6 +132,7 @@ parts.push(cleanModule(path.join(SRC_DIR, 'cert.js'), 'lib/cert.js'));
 parts.push(cleanModule(path.join(SRC_DIR, 'engines', 'singbox.js'), 'lib/engines/singbox.js'));
 parts.push(cleanModule(path.join(SRC_DIR, 'engines', 'xray.js'), 'lib/engines/xray.js'));
 parts.push(cleanModule(path.join(SRC_DIR, 'engines', 'argo.js'), 'lib/engines/argo.js'));
+parts.push(cleanModule(path.join(SRC_DIR, 'engines', 'mtproto.js'), 'lib/engines/mtproto.js'));
 parts.push(cleanModule(path.join(SRC_DIR, 'panel', 'validator.js'), 'lib/panel/validator.js'));
 parts.push(cleanModule(path.join(SRC_DIR, 'panel', 'links.js'), 'lib/panel/links.js'));
 
@@ -158,7 +159,8 @@ module.exports = {
   startGate,
   Logger,
   readTailSync,
-  rotateLogIfNeeded
+  rotateLogIfNeeded,
+  MtgEngine
 };
 `);
 
