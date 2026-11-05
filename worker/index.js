@@ -3,7 +3,7 @@
  *            MAVIS PANEL — CLOUDFLARE WORKER RUNTIME
  * ====================================================================
  * High-performance Serverless VLESS over WebSocket Proxy & Web Panel
- * Developed by 4rsh14 (https://github.com/4rsh14)
+ * Developed by Arash Seyfi
  * Built with Cloudflare Workers TCP Sockets (cloudflare:sockets)
  * ====================================================================
  */
@@ -348,9 +348,9 @@ async function pipeRemoteToWs(socket, ws) {
           resp[0] = 0; // version
           resp[1] = 0; // addons len
           resp.set(value, 2);
-          ws.send(resp.buffer);
+          ws.send(resp);
         } else {
-          ws.send(value.buffer);
+          ws.send(value);
         }
       }
     }

@@ -107,6 +107,10 @@ async function startGate(userConfig = {}) {
   let hasMtg = false;
   if (config.enable.mtproto) {
     hasMtg = await binManager.ensureMtg();
+    if (!hasMtg) {
+      config.enable.mtproto = false;
+      delete allocatedPorts.mtproto;
+    }
   }
 
   // 7. Start Engine Instances

@@ -18,6 +18,12 @@
   "engines": {
     "node": ">=18"
   },
-  "author": "4rsh14 (https://github.com/4rsh14)",
-  "license": "MIT"
+  "author": "Arash Seyfi",
+  "license": "MIT",
+  "contributors": [
+    "4rsh14 (https://github.com/4rsh14)"
+  ],
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
 }

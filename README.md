@@ -108,7 +108,7 @@ MIT
 
 ---
 
-## Credits & Attribution
+## Credits & Contributors
 
-- **Developed by:** [4rsh14](https://github.com/4rsh14)
-- **Core Origin:** Forked from Arash Seyfi's original project
+- **Author & Maintainer:** Arash Seyfi
+- **Contributor:** [4rsh14](https://github.com/4rsh14) (MTProto proxy engine & Cloudflare Workers serverless edge support)

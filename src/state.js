@@ -95,18 +95,18 @@ class StateManager {
 
     // MTProto Fake-TLS Secret
     const targetSni = ((this.config.mtproto && this.config.mtproto.sni) || 'www.google.com').trim().toLowerCase();
+    const targetHex = Buffer.from(targetSni, 'ascii').toString('hex');
     if (this.config.mtproto && this.config.mtproto.secret) {
       this.state.mtprotoSecret = this.config.mtproto.secret;
     } else if (!this.state.mtprotoSecret) {
-      this.state.mtprotoSecret = 'ee' + crypto.randomBytes(16).toString('hex') + Buffer.from(targetSni, 'ascii').toString('hex');
+      this.state.mtprotoSecret = 'ee' + crypto.randomBytes(16).toString('hex') + targetHex;
     } else {
       // Auto-migrate from blocked legacy 'dns.google' or update if user changed MTPROTO_SNI
       const current = this.state.mtprotoSecret.toLowerCase();
-      const legacyDnsGoogleHex = Buffer.from('dns.google', 'ascii').toString('hex');
-      if (current.endsWith(legacyDnsGoogleHex)) {
+      if (current.startsWith('ee') && current.length >= 34 && !current.endsWith(targetHex)) {
         const keyPart = current.slice(0, 34); // 'ee' + 32-char hex key
-        this.state.mtprotoSecret = keyPart + Buffer.from(targetSni, 'ascii').toString('hex');
-        Logger.info(`MTProto secret auto-migrated from dns.google to clean SNI (${targetSni})`);
+        this.state.mtprotoSecret = keyPart + targetHex;
+        Logger.info(`MTProto secret auto-migrated / updated to clean SNI (${targetSni})`);
       }
     }
 

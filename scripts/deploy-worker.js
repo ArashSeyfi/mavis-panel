@@ -47,6 +47,7 @@ try {
   const result = spawnSync('npx', ['wrangler', 'deploy'], {
     cwd: ROOT_DIR,
     stdio: 'inherit',
+    shell: process.platform === 'win32',
     env: {
       ...process.env,
       CLOUDFLARE_API_TOKEN: apiToken,
