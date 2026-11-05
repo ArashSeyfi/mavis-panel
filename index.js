@@ -21,9 +21,9 @@ const axios = require('axios');
 
 // --- Embedded Web Panel Assets (Monochrome Clean B&W) ---
 const EMBEDDED_ASSETS = {
-  indexHtml: "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Mavis Panel</title>\n  <link rel=\"stylesheet\" href=\"/mavis-assets/app.css\">\n  <link rel=\"icon\" type=\"image/svg+xml\" href=\"/mavis-assets/logo.svg\">\n</head>\n<body>\n\n  <nav class=\"topbar\">\n    <a href=\"#/home\" class=\"logo\">Mavis</a>\n    <div class=\"nav-links\">\n      <a href=\"#/home\" class=\"nav-link active\" data-page=\"home\">Home</a>\n      <a href=\"#/subs\" class=\"nav-link\" data-page=\"subs\">Subs</a>\n      <a href=\"#/nodes\" class=\"nav-link\" data-page=\"nodes\">Direct Links</a>\n    </div>\n  </nav>\n\n  <main>\n\n    <!-- HOME -->\n    <div id=\"viewHome\" class=\"page active\">\n\n      <div class=\"status-bar\">\n        <div class=\"status-row\">\n          <span class=\"dot green\"></span>\n          <span class=\"status-label\">Uptime</span>\n          <span class=\"status-val\" id=\"homeUptime\">—</span>\n        </div>\n        <div class=\"status-row\">\n          <span class=\"status-label\">Location</span>\n          <span class=\"status-val\" id=\"homeLocation\">—</span>\n        </div>\n        <div class=\"status-row\">\n          <span class=\"status-label\">Host</span>\n          <span class=\"status-val\" id=\"homeHost\">—</span>\n        </div>\n        <div class=\"status-row\">\n          <span class=\"status-label\">Port</span>\n          <span class=\"status-val\" id=\"homePort\">—</span>\n        </div>\n      </div>\n\n      <div class=\"protos\">\n        <span class=\"proto-tag\">VLESS</span>\n        <span class=\"proto-tag\">Trojan</span>\n        <span class=\"proto-tag\">VMess</span>\n        <span class=\"proto-tag\">Shadowsocks</span>\n        <span class=\"proto-tag\">WireGuard</span>\n        <span class=\"proto-tag\">Reality</span>\n      </div>\n\n    </div>\n\n    <!-- SUBS -->\n    <div id=\"viewSubs\" class=\"page\">\n\n      <div class=\"section-head\">\n        <h2>Subscriptions</h2>\n        <div class=\"proto-switch\">\n          <button type=\"button\" id=\"btnProtoHttp\" class=\"sw-btn active\">HTTP</button>\n          <button type=\"button\" id=\"btnProtoHttps\" class=\"sw-btn\">HTTPS</button>\n        </div>\n      </div>\n\n      <div class=\"sub-list\">\n\n        <div class=\"sub-row\">\n          <div class=\"sub-meta\">\n            <strong>Universal</strong>\n            <span class=\"sub-hint\">v2rayN / v2rayNG / Hiddify / Streisand</span>\n          </div>\n          <div class=\"sub-controls\">\n            <input type=\"text\" id=\"urlSubCompat\" class=\"mono-input\" readonly>\n            <button type=\"button\" class=\"btn\" data-action=\"copy-input\" data-target=\"urlSubCompat\">Copy</button>\n            <button type=\"button\" class=\"btn\" data-action=\"qr-input\" data-target=\"urlSubCompat\">QR</button>\n          </div>\n        </div>\n\n        <div class=\"sub-row\">\n          <div class=\"sub-meta\">\n            <strong>Clash Meta / Mihomo</strong>\n            <span class=\"sub-hint\">Clash Verge / Mihomo / Flclash</span>\n          </div>\n          <div class=\"sub-controls\">\n            <input type=\"text\" id=\"urlClash\" class=\"mono-input\" readonly>\n            <button type=\"button\" class=\"btn\" data-action=\"copy-input\" data-target=\"urlClash\">Copy</button>\n            <button type=\"button\" class=\"btn\" data-action=\"qr-input\" data-target=\"urlClash\">QR</button>\n          </div>\n        </div>\n\n        <div class=\"sub-row\">\n          <div class=\"sub-meta\">\n            <strong>Sing-box JSON</strong>\n          </div>\n          <div class=\"sub-controls\">\n            <input type=\"text\" id=\"urlSb\" class=\"mono-input\" readonly>\n            <button type=\"button\" class=\"btn\" data-action=\"copy-input\" data-target=\"urlSb\">Copy</button>\n          </div>\n        </div>\n\n        <div class=\"sub-row\">\n          <div class=\"sub-meta\">\n            <strong>Full Subscription</strong>\n            <span class=\"sub-hint\">All protocols</span>\n          </div>\n          <div class=\"sub-controls\">\n            <input type=\"text\" id=\"urlSubFull\" class=\"mono-input\" readonly>\n            <button type=\"button\" class=\"btn\" data-action=\"copy-input\" data-target=\"urlSubFull\">Copy</button>\n          </div>\n        </div>\n\n        <div class=\"sub-row\" id=\"subRowWg\">\n          <div class=\"sub-meta\">\n            <strong>WireGuard</strong>\n            <span class=\"sub-hint\">.conf profile</span>\n          </div>\n          <div class=\"sub-controls\">\n            <input type=\"text\" id=\"urlWgConf\" class=\"mono-input\" readonly>\n            <button type=\"button\" class=\"btn\" data-action=\"copy-input\" data-target=\"urlWgConf\">Copy</button>\n            <a href=\"/mavis/wg.conf\" id=\"btnDownloadWg\" download=\"mavis-wg.conf\" class=\"btn\">Download</a>\n          </div>\n        </div>\n\n      </div>\n    </div>\n\n    <!-- NODES -->\n    <div id=\"viewNodes\" class=\"page\">\n      <div class=\"section-head\">\n        <h2>Direct Links</h2>\n        <div class=\"loc-badge\" id=\"nodesLocationBadge\">\n          <span class=\"dot green\"></span>\n          <span id=\"nodesLocation\">Loading…</span>\n        </div>\n      </div>\n      <div id=\"nodesContainer\" class=\"nodes-list\">\n        <p class=\"muted center\">Loading links…</p>\n      </div>\n    </div>\n\n  </main>\n\n  <!-- QR Modal -->\n  <div id=\"qrModal\" class=\"modal-bg\">\n    <div class=\"modal\">\n      <div class=\"modal-top\">\n        <h3 id=\"qrModalTitle\">QR Code</h3>\n        <button type=\"button\" class=\"modal-close\" id=\"qrCloseBtn\">&times;</button>\n      </div>\n      <div class=\"modal-body\">\n        <div id=\"qrcodeWrapper\" class=\"qr-box\"></div>\n      </div>\n    </div>\n  </div>\n\n  <div id=\"mavisToast\" class=\"toast\"></div>\n\n  <footer class=\"footer\">Made by Arash Seyfi</footer>\n\n  <script src=\"/mavis-assets/app.js\"></script>\n</body>\n</html>\n",
+  indexHtml: "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Mavis Panel</title>\n  <link rel=\"stylesheet\" href=\"/mavis-assets/app.css\">\n  <link rel=\"icon\" type=\"image/svg+xml\" href=\"/mavis-assets/logo.svg\">\n</head>\n<body>\n\n  <nav class=\"topbar\">\n    <a href=\"#/home\" class=\"logo\">Mavis</a>\n    <div class=\"nav-links\">\n      <a href=\"#/home\" class=\"nav-link active\" data-page=\"home\">Home</a>\n      <a href=\"#/subs\" class=\"nav-link\" data-page=\"subs\">Subs</a>\n      <a href=\"#/nodes\" class=\"nav-link\" data-page=\"nodes\">Direct Links</a>\n    </div>\n  </nav>\n\n  <main>\n\n    <!-- HOME -->\n    <div id=\"viewHome\" class=\"page active\">\n\n      <div class=\"status-bar\">\n        <div class=\"status-row\">\n          <span class=\"dot green\"></span>\n          <span class=\"status-label\">Uptime</span>\n          <span class=\"status-val\" id=\"homeUptime\">—</span>\n        </div>\n        <div class=\"status-row\">\n          <span class=\"status-label\">Location</span>\n          <span class=\"status-val\" id=\"homeLocation\">—</span>\n        </div>\n        <div class=\"status-row\">\n          <span class=\"status-label\">Host</span>\n          <span class=\"status-val\" id=\"homeHost\">—</span>\n        </div>\n        <div class=\"status-row\">\n          <span class=\"status-label\">Port</span>\n          <span class=\"status-val\" id=\"homePort\">—</span>\n        </div>\n      </div>\n\n      <div class=\"protos\" id=\"protoTagsContainer\">\n        <span class=\"proto-tag\">VLESS</span>\n        <span class=\"proto-tag\">Trojan</span>\n        <span class=\"proto-tag\">VMess</span>\n        <span class=\"proto-tag\">Shadowsocks</span>\n        <span class=\"proto-tag\">WireGuard</span>\n        <span class=\"proto-tag\">Reality</span>\n      </div>\n\n    </div>\n\n    <!-- SUBS -->\n    <div id=\"viewSubs\" class=\"page\">\n\n      <div class=\"section-head\">\n        <h2>Subscriptions</h2>\n        <div class=\"proto-switch\">\n          <button type=\"button\" id=\"btnProtoHttp\" class=\"sw-btn active\">HTTP</button>\n          <button type=\"button\" id=\"btnProtoHttps\" class=\"sw-btn\">HTTPS</button>\n        </div>\n      </div>\n\n      <div class=\"sub-list\">\n\n        <div class=\"sub-row\">\n          <div class=\"sub-meta\">\n            <strong>Universal</strong>\n            <span class=\"sub-hint\">v2rayN / v2rayNG / Hiddify / Streisand</span>\n          </div>\n          <div class=\"sub-controls\">\n            <input type=\"text\" id=\"urlSubCompat\" class=\"mono-input\" readonly>\n            <button type=\"button\" class=\"btn\" data-action=\"copy-input\" data-target=\"urlSubCompat\">Copy</button>\n            <button type=\"button\" class=\"btn\" data-action=\"qr-input\" data-target=\"urlSubCompat\">QR</button>\n          </div>\n        </div>\n\n        <div class=\"sub-row\">\n          <div class=\"sub-meta\">\n            <strong>Clash Meta / Mihomo</strong>\n            <span class=\"sub-hint\">Clash Verge / Mihomo / Flclash</span>\n          </div>\n          <div class=\"sub-controls\">\n            <input type=\"text\" id=\"urlClash\" class=\"mono-input\" readonly>\n            <button type=\"button\" class=\"btn\" data-action=\"copy-input\" data-target=\"urlClash\">Copy</button>\n            <button type=\"button\" class=\"btn\" data-action=\"qr-input\" data-target=\"urlClash\">QR</button>\n          </div>\n        </div>\n\n        <div class=\"sub-row\">\n          <div class=\"sub-meta\">\n            <strong>Sing-box JSON</strong>\n          </div>\n          <div class=\"sub-controls\">\n            <input type=\"text\" id=\"urlSb\" class=\"mono-input\" readonly>\n            <button type=\"button\" class=\"btn\" data-action=\"copy-input\" data-target=\"urlSb\">Copy</button>\n          </div>\n        </div>\n\n        <div class=\"sub-row\">\n          <div class=\"sub-meta\">\n            <strong>Full Subscription</strong>\n            <span class=\"sub-hint\">All protocols</span>\n          </div>\n          <div class=\"sub-controls\">\n            <input type=\"text\" id=\"urlSubFull\" class=\"mono-input\" readonly>\n            <button type=\"button\" class=\"btn\" data-action=\"copy-input\" data-target=\"urlSubFull\">Copy</button>\n          </div>\n        </div>\n\n        <div class=\"sub-row\" id=\"subRowMtproto\">\n          <div class=\"sub-meta\">\n            <strong>Telegram MTProto</strong>\n            <span class=\"sub-hint\">Fake-TLS proxy</span>\n          </div>\n          <div class=\"sub-controls\">\n            <input type=\"text\" id=\"urlMtproto\" class=\"mono-input\" readonly>\n            <button type=\"button\" class=\"btn\" data-action=\"copy-input\" data-target=\"urlMtproto\">Copy</button>\n            <a href=\"#\" id=\"btnConnectTg\" class=\"btn\" target=\"_blank\">Connect</a>\n          </div>\n        </div>\n\n        <div class=\"sub-row\" id=\"subRowWg\">\n          <div class=\"sub-meta\">\n            <strong>WireGuard</strong>\n            <span class=\"sub-hint\">.conf profile</span>\n          </div>\n          <div class=\"sub-controls\">\n            <input type=\"text\" id=\"urlWgConf\" class=\"mono-input\" readonly>\n            <button type=\"button\" class=\"btn\" data-action=\"copy-input\" data-target=\"urlWgConf\">Copy</button>\n            <a href=\"/mavis/wg.conf\" id=\"btnDownloadWg\" download=\"mavis-wg.conf\" class=\"btn\">Download</a>\n          </div>\n        </div>\n\n      </div>\n    </div>\n\n    <!-- NODES -->\n    <div id=\"viewNodes\" class=\"page\">\n      <div class=\"section-head\">\n        <h2>Direct Links</h2>\n        <div class=\"loc-badge\" id=\"nodesLocationBadge\">\n          <span class=\"dot green\"></span>\n          <span id=\"nodesLocation\">Loading…</span>\n        </div>\n      </div>\n      <div id=\"nodesContainer\" class=\"nodes-list\">\n        <p class=\"muted center\">Loading links…</p>\n      </div>\n    </div>\n\n  </main>\n\n  <!-- QR Modal -->\n  <div id=\"qrModal\" class=\"modal-bg\">\n    <div class=\"modal\">\n      <div class=\"modal-top\">\n        <h3 id=\"qrModalTitle\">QR Code</h3>\n        <button type=\"button\" class=\"modal-close\" id=\"qrCloseBtn\">&times;</button>\n      </div>\n      <div class=\"modal-body\">\n        <div id=\"qrcodeWrapper\" class=\"qr-box\"></div>\n      </div>\n    </div>\n  </div>\n\n  <div id=\"mavisToast\" class=\"toast\"></div>\n\n  <footer class=\"footer\">Made by Arash Seyfi</footer>\n\n  <script src=\"/mavis-assets/app.js\"></script>\n</body>\n</html>\n",
   appCss: "/* Mavis Panel */\n\n* { box-sizing: border-box; margin: 0; padding: 0; }\n\nhtml, body {\n  background: #111;\n  color: #ccc;\n  font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif;\n  font-size: 14px;\n  line-height: 1.5;\n  -webkit-font-smoothing: antialiased;\n}\n\n::-webkit-scrollbar { width: 6px; }\n::-webkit-scrollbar-track { background: #111; }\n::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }\n\n/* Layout */\nmain {\n  max-width: 720px;\n  margin: 0 auto;\n  padding: 24px 20px 60px;\n}\n\n/* Top bar */\n.topbar {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  max-width: 720px;\n  margin: 0 auto;\n  padding: 16px 20px;\n}\n\n.logo {\n  font-size: 16px;\n  font-weight: 700;\n  color: #fff;\n  text-decoration: none;\n  letter-spacing: -0.02em;\n}\n\n.nav-links { display: flex; gap: 4px; }\n\n.nav-link {\n  padding: 5px 12px;\n  color: #888;\n  text-decoration: none;\n  font-size: 13px;\n  font-weight: 500;\n  border-radius: 4px;\n}\n\n.nav-link:hover { color: #bbb; }\n.nav-link.active { color: #111; background: #ddd; }\n\n/* Pages */\n.page { display: none; }\n.page.active { display: block; }\n\n/* Status bar */\n.status-bar {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 2px;\n  margin-bottom: 24px;\n  background: #1a1a1a;\n  border: 1px solid #222;\n  border-radius: 6px;\n  overflow: hidden;\n}\n\n.status-row {\n  flex: 1 1 auto;\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  padding: 10px 14px;\n  min-width: 130px;\n  font-size: 13px;\n  border-right: 1px solid #222;\n}\n\n.status-row:last-child { border-right: none; }\n\n.dot {\n  width: 6px;\n  height: 6px;\n  border-radius: 50%;\n  flex-shrink: 0;\n}\n\n.dot.green { background: #4a4; }\n\n.status-label { color: #666; margin-right: 4px; }\n.status-val { color: #ddd; font-weight: 600; }\n\n/* Protocol tags */\n.protos {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 6px;\n}\n\n.proto-tag {\n  font-size: 12px;\n  font-weight: 600;\n  color: #999;\n  background: #1a1a1a;\n  border: 1px solid #252525;\n  padding: 4px 10px;\n  border-radius: 4px;\n}\n\n/* Section head */\n.section-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 12px;\n  margin-bottom: 16px;\n}\n\n.section-head h2 {\n  font-size: 16px;\n  font-weight: 700;\n  color: #eee;\n}\n\n/* Proto switch */\n.proto-switch { display: flex; gap: 2px; }\n\n.sw-btn {\n  background: transparent;\n  border: 1px solid #333;\n  color: #888;\n  font-size: 12px;\n  font-weight: 600;\n  padding: 4px 10px;\n  border-radius: 4px;\n  cursor: pointer;\n}\n\n.sw-btn.active {\n  background: #ddd;\n  color: #111;\n  border-color: #ddd;\n}\n\n/* Sub list */\n.sub-list { display: flex; flex-direction: column; gap: 10px; }\n\n.sub-row {\n  background: #1a1a1a;\n  border: 1px solid #222;\n  border-radius: 6px;\n  padding: 12px 14px;\n}\n\n.sub-meta { margin-bottom: 8px; }\n.sub-meta strong { color: #ddd; font-size: 13px; }\n.sub-hint { color: #666; font-size: 12px; margin-left: 8px; }\n\n.sub-controls { display: flex; gap: 6px; align-items: center; }\n\n.mono-input {\n  flex: 1;\n  background: #111;\n  border: 1px solid #2a2a2a;\n  color: #888;\n  font-family: \"SF Mono\", \"Cascadia Code\", \"Consolas\", monospace;\n  font-size: 12px;\n  padding: 7px 10px;\n  border-radius: 4px;\n  outline: none;\n  min-width: 0;\n}\n\n.mono-input:focus { color: #ccc; border-color: #444; }\n\n/* Buttons */\n.btn {\n  background: #222;\n  border: 1px solid #333;\n  color: #ccc;\n  font-size: 12px;\n  font-weight: 600;\n  padding: 7px 12px;\n  border-radius: 4px;\n  cursor: pointer;\n  text-decoration: none;\n  white-space: nowrap;\n  display: inline-flex;\n  align-items: center;\n}\n\n.btn:hover { background: #2a2a2a; border-color: #444; }\n\n/* Location badge */\n.loc-badge {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  font-size: 12px;\n  color: #888;\n}\n\n/* Nodes list */\n.nodes-list {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 10px;\n}\n\n.node-card {\n  background: #1a1a1a;\n  border: 1px solid #222;\n  border-radius: 6px;\n  padding: 12px;\n}\n\n.node-top {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 6px;\n  margin-bottom: 6px;\n}\n\n.node-proto {\n  font-size: 11px;\n  font-weight: 700;\n  color: #111;\n  background: #aaa;\n  padding: 1px 6px;\n  border-radius: 3px;\n}\n\n.node-badges { display: flex; gap: 4px; }\n\n.node-badge {\n  font-size: 11px;\n  color: #666;\n  border: 1px solid #2a2a2a;\n  padding: 1px 5px;\n  border-radius: 3px;\n}\n\n.node-name {\n  font-size: 13px;\n  font-weight: 600;\n  color: #ccc;\n  margin-bottom: 8px;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.node-uri {\n  width: 100%;\n  background: #111;\n  border: 1px solid #2a2a2a;\n  color: #666;\n  font-family: monospace;\n  font-size: 11px;\n  padding: 5px 8px;\n  border-radius: 4px;\n  outline: none;\n  margin-bottom: 8px;\n}\n\n.node-uri:focus { color: #aaa; border-color: #444; }\n\n.node-actions { display: flex; gap: 6px; }\n\n.node-actions .btn { flex: 1; justify-content: center; font-size: 12px; padding: 5px 8px; }\n\n/* Utilities */\n.muted { color: #666; }\n.center { text-align: center; }\n\n/* Modal */\n.modal-bg {\n  position: fixed;\n  inset: 0;\n  background: rgba(0,0,0,.7);\n  display: none;\n  align-items: center;\n  justify-content: center;\n  z-index: 100;\n  padding: 20px;\n}\n\n.modal-bg.active { display: flex; }\n\n.modal {\n  background: #1a1a1a;\n  border: 1px solid #333;\n  border-radius: 8px;\n  width: 100%;\n  max-width: 320px;\n  padding: 16px;\n}\n\n.modal-top {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  margin-bottom: 12px;\n}\n\n.modal-top h3 { font-size: 14px; color: #ddd; }\n\n.modal-close {\n  background: none;\n  border: none;\n  color: #888;\n  font-size: 20px;\n  cursor: pointer;\n  line-height: 1;\n}\n\n.modal-body { text-align: center; }\n\n.qr-box {\n  background: #fff;\n  padding: 10px;\n  border-radius: 6px;\n  display: inline-block;\n}\n\n.qr-box img { display: block; }\n\n/* Toast */\n.toast {\n  position: fixed;\n  bottom: 20px;\n  left: 50%;\n  transform: translateX(-50%) translateY(80px);\n  background: #ddd;\n  color: #111;\n  padding: 6px 16px;\n  border-radius: 6px;\n  font-size: 13px;\n  font-weight: 600;\n  z-index: 200;\n  pointer-events: none;\n  transition: transform .2s ease;\n}\n\n.toast.show { transform: translateX(-50%) translateY(0); }\n\n/* Responsive */\n@media (max-width: 600px) {\n  .status-bar { flex-direction: column; gap: 0; }\n  .status-row { border-right: none; border-bottom: 1px solid #222; }\n  .status-row:last-child { border-bottom: none; }\n  .nodes-list { grid-template-columns: 1fr; }\n  .sub-hint { display: block; margin-left: 0; margin-top: 2px; }\n  .section-head { flex-wrap: wrap; }\n}\n\n/* Footer */\n.footer {\n  max-width: 720px;\n  margin: 0 auto;\n  padding: 24px 20px;\n  text-align: center;\n  font-size: 12px;\n  color: #555;\n}\n",
-  appJs: "// Mavis Panel\n\nlet gateData = null;\n\nfunction showToast(text) {\n  const t = document.getElementById('mavisToast');\n  if (!t) return;\n  t.innerText = text;\n  t.classList.add('show');\n  setTimeout(() => t.classList.remove('show'), 2000);\n}\n\nfunction copyText(text) {\n  if (!text) return;\n  if (navigator.clipboard && window.isSecureContext) {\n    navigator.clipboard.writeText(text).then(() => showToast('Copied')).catch(() => fbCopy(text));\n  } else {\n    fbCopy(text);\n  }\n}\n\nfunction fbCopy(text) {\n  const ta = document.createElement('textarea');\n  ta.value = text;\n  ta.style.cssText = 'position:fixed;opacity:0';\n  document.body.appendChild(ta);\n  ta.select();\n  try { document.execCommand('copy'); showToast('Copied'); }\n  catch { showToast('Copy failed'); }\n  document.body.removeChild(ta);\n}\n\n// QR modal\nfunction openQr(text, title) {\n  if (!text) return;\n  const modal = document.getElementById('qrModal');\n  const wrap = document.getElementById('qrcodeWrapper');\n  const titleEl = document.getElementById('qrModalTitle');\n  if (!modal || !wrap) return;\n  if (titleEl) titleEl.innerText = title || 'QR Code';\n  wrap.innerHTML = '';\n  const img = document.createElement('img');\n  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(text)}`;\n  img.alt = 'QR';\n  img.width = 200;\n  img.height = 200;\n  wrap.appendChild(img);\n  modal.classList.add('active');\n}\n\nfunction closeQr() {\n  document.getElementById('qrModal')?.classList.remove('active');\n}\n\ndocument.getElementById('qrCloseBtn')?.addEventListener('click', closeQr);\ndocument.getElementById('qrModal')?.addEventListener('click', e => {\n  if (e.target.id === 'qrModal') closeQr();\n});\ndocument.addEventListener('keydown', e => { if (e.key === 'Escape') closeQr(); });\n\n// Event delegation\ndocument.addEventListener('click', e => {\n  const btn = e.target.closest('button, a');\n  if (!btn) return;\n  const action = btn.getAttribute('data-action');\n  if (!action) return;\n\n  if (action === 'copy-input') {\n    const el = document.getElementById(btn.getAttribute('data-target'));\n    if (el) copyText(el.value);\n  } else if (action === 'qr-input') {\n    const el = document.getElementById(btn.getAttribute('data-target'));\n    if (el) openQr(el.value, 'Subscription QR');\n  } else if (action === 'copy-text') {\n    const raw = btn.getAttribute('data-text');\n    if (raw) copyText(decodeURIComponent(raw));\n  } else if (action === 'qr-text') {\n    const raw = btn.getAttribute('data-text');\n    if (raw) openQr(decodeURIComponent(raw), btn.getAttribute('data-title') || 'QR Code');\n  }\n});\n\n// Routing\nfunction route() {\n  let hash = window.location.hash || '#/home';\n  if (hash === '#' || hash === '') hash = '#/home';\n  const pg = hash.replace(/^#\\/?/, '').split('?')[0].toLowerCase() || 'home';\n  let page = 'home';\n  if (pg === 'subs' || pg === 'sub') page = 'subs';\n  else if (pg === 'nodes' || pg === 'node') page = 'nodes';\n\n  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));\n  const viewMap = { home: 'viewHome', subs: 'viewSubs', nodes: 'viewNodes' };\n  document.getElementById(viewMap[page])?.classList.add('active');\n\n  document.querySelectorAll('.nav-link').forEach(el => {\n    el.classList.toggle('active', el.getAttribute('data-page') === page);\n  });\n\n  window.scrollTo({ top: 0 });\n}\n\nwindow.addEventListener('hashchange', route);\n\nfunction esc(str) {\n  if (!str) return '';\n  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');\n}\n\n// Render nodes\nfunction renderNodes(nodes) {\n  const c = document.getElementById('nodesContainer');\n  if (!c) return;\n\n  const active = (nodes || []).filter(n => {\n    if (!n || !n.uri) return false;\n    const t = (n.type || '').toLowerCase();\n    return !t.includes('hy2') && !t.includes('hysteria');\n  });\n\n  if (!active.length) {\n    c.innerHTML = '<p class=\"muted center\" style=\"grid-column:1/-1;padding:32px 0\">No active links.</p>';\n    return;\n  }\n\n  let html = '';\n  active.forEach((node, i) => {\n    const name = node.name || `Node ${i + 1}`;\n    const lt = (node.type || '').toLowerCase();\n\n    let proto = 'VLESS';\n    if (lt.includes('vmess')) proto = 'VMess';\n    else if (lt.includes('trojan')) proto = 'Trojan';\n    else if (lt.includes('shadowsocks') || lt.includes('ss')) proto = 'SS';\n    else if (lt.includes('wireguard') || lt.includes('wg')) proto = 'WG';\n    else if (lt.includes('tuic')) proto = 'TUIC';\n\n    let badges = '';\n    if (lt.includes('ws')) badges += '<span class=\"node-badge\">WS</span>';\n    else if (lt.includes('httpupgrade')) badges += '<span class=\"node-badge\">HTTPUpgrade</span>';\n    else if (lt.includes('grpc')) badges += '<span class=\"node-badge\">gRPC</span>';\n    else if (lt.includes('xhttp')) badges += '<span class=\"node-badge\">XHTTP</span>';\n\n    if (lt.includes('reality')) badges += '<span class=\"node-badge\">Reality</span>';\n    else if (lt.includes('tls')) badges += '<span class=\"node-badge\">TLS</span>';\n\n    const eu = encodeURIComponent(node.uri);\n\n    html += `<div class=\"node-card\">\n      <div class=\"node-top\">\n        <span class=\"node-proto\">${proto}</span>\n        <div class=\"node-badges\">${badges}</div>\n      </div>\n      <div class=\"node-name\" title=\"${esc(name)}\">${esc(name)}</div>\n      <input type=\"text\" class=\"node-uri\" readonly value=\"${esc(node.uri)}\" onclick=\"this.select()\">\n      <div class=\"node-actions\">\n        <button type=\"button\" class=\"btn\" data-action=\"copy-text\" data-text=\"${eu}\">Copy</button>\n        <button type=\"button\" class=\"btn\" data-action=\"qr-text\" data-text=\"${eu}\" data-title=\"${encodeURIComponent(name)}\">QR</button>\n      </div>\n    </div>`;\n  });\n\n  c.innerHTML = html;\n}\n\n// Load data\nasync function loadData() {\n  try {\n    const segs = window.location.pathname.split('/').filter(Boolean);\n    const prefix = segs[0] || 'mavis';\n\n    const res = await fetch('/health');\n    const data = await res.json();\n    gateData = data;\n\n    const port = data.publicPort || window.location.port || '2705';\n    const host = data.domain || data.host || window.location.hostname;\n    const loc = data.location || 'Global';\n\n    let uptime = '—';\n    if (data.uptime !== undefined) {\n      const m = Math.floor(data.uptime / 60);\n      const s = Math.floor(data.uptime % 60);\n      uptime = `${m}m ${s}s`;\n    }\n\n    const set = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };\n    set('homeLocation', loc);\n    set('homePort', port);\n    set('homeHost', host);\n    set('homeUptime', uptime);\n    set('nodesLocation', loc);\n\n    const engines = [];\n    if (data.engines?.singbox) engines.push('sing-box');\n    if (data.engines?.xray) engines.push('xray');\n    if (data.engines?.argo) engines.push('argo');\n    set('homeEngine', engines.join(' + ') || 'sing-box');\n\n    let activeProto = (data.forceHttps || window.location.protocol === 'https:') ? 'https:' : 'http:';\n\n    const updateSubs = (proto) => {\n      let origin;\n      if (data.publicBaseUrl?.trim()) {\n        origin = data.publicBaseUrl.trim().replace(/\\/+$/, '');\n      } else if (data.subBase?.trim()) {\n        origin = data.subBase.trim().replace(/\\/+$/, '');\n      } else {\n        const hp = window.location.port ? `${window.location.hostname}:${window.location.port}` : window.location.hostname;\n        if (proto === 'https:') {\n          if (data.domain) origin = data.domain.startsWith('http') ? data.domain : `https://${data.domain}`;\n          else if (window.location.protocol === 'https:') origin = window.location.origin;\n          else origin = `https://${hp}`;\n        } else {\n          origin = `http://${hp}`;\n        }\n      }\n\n      const val = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };\n      val('urlSubCompat', `${origin}/${prefix}/base64`);\n      val('urlSubFull', `${origin}/${prefix}/base64?compat=full`);\n      val('urlClash', `${origin}/${prefix}/clash`);\n      val('urlSb', `${origin}/${prefix}/sb/raw`);\n      val('urlWgConf', `${origin}/${prefix}/wg.conf`);\n\n      const dlBtn = document.getElementById('btnDownloadWg');\n      if (dlBtn) dlBtn.href = `${origin}/${prefix}/wg.conf`;\n    };\n\n    updateSubs(activeProto);\n\n    const btnHttp = document.getElementById('btnProtoHttp');\n    const btnHttps = document.getElementById('btnProtoHttps');\n    if (btnHttp && btnHttps) {\n      btnHttp.classList.toggle('active', activeProto === 'http:');\n      btnHttps.classList.toggle('active', activeProto === 'https:');\n\n      btnHttp.onclick = () => {\n        activeProto = 'http:';\n        btnHttp.classList.add('active');\n        btnHttps.classList.remove('active');\n        updateSubs('http:');\n        showToast('HTTP');\n      };\n      btnHttps.onclick = () => {\n        activeProto = 'https:';\n        btnHttps.classList.add('active');\n        btnHttp.classList.remove('active');\n        updateSubs('https:');\n        showToast('HTTPS');\n      };\n    }\n\n    renderNodes(data.nodes);\n\n  } catch (err) {\n    console.error('Load failed:', err);\n    const c = document.getElementById('nodesContainer');\n    if (c) c.innerHTML = '<p class=\"muted center\" style=\"grid-column:1/-1;padding:32px 0\">Failed to connect.</p>';\n  }\n}\n\ndocument.addEventListener('DOMContentLoaded', () => {\n  route();\n  loadData();\n});\n",
+  appJs: "// Mavis Panel\n\nlet gateData = null;\n\nfunction showToast(text) {\n  const t = document.getElementById('mavisToast');\n  if (!t) return;\n  t.innerText = text;\n  t.classList.add('show');\n  setTimeout(() => t.classList.remove('show'), 2000);\n}\n\nfunction copyText(text) {\n  if (!text) return;\n  if (navigator.clipboard && window.isSecureContext) {\n    navigator.clipboard.writeText(text).then(() => showToast('Copied')).catch(() => fbCopy(text));\n  } else {\n    fbCopy(text);\n  }\n}\n\nfunction fbCopy(text) {\n  const ta = document.createElement('textarea');\n  ta.value = text;\n  ta.style.cssText = 'position:fixed;opacity:0';\n  document.body.appendChild(ta);\n  ta.select();\n  try { document.execCommand('copy'); showToast('Copied'); }\n  catch { showToast('Copy failed'); }\n  document.body.removeChild(ta);\n}\n\n// QR modal\nfunction openQr(text, title) {\n  if (!text) return;\n  const modal = document.getElementById('qrModal');\n  const wrap = document.getElementById('qrcodeWrapper');\n  const titleEl = document.getElementById('qrModalTitle');\n  if (!modal || !wrap) return;\n  if (titleEl) titleEl.innerText = title || 'QR Code';\n  wrap.innerHTML = '';\n  const img = document.createElement('img');\n  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(text)}`;\n  img.alt = 'QR';\n  img.width = 200;\n  img.height = 200;\n  wrap.appendChild(img);\n  modal.classList.add('active');\n}\n\nfunction closeQr() {\n  document.getElementById('qrModal')?.classList.remove('active');\n}\n\ndocument.getElementById('qrCloseBtn')?.addEventListener('click', closeQr);\ndocument.getElementById('qrModal')?.addEventListener('click', e => {\n  if (e.target.id === 'qrModal') closeQr();\n});\ndocument.addEventListener('keydown', e => { if (e.key === 'Escape') closeQr(); });\n\n// Event delegation\ndocument.addEventListener('click', e => {\n  const btn = e.target.closest('button, a');\n  if (!btn) return;\n  const action = btn.getAttribute('data-action');\n  if (!action) return;\n\n  if (action === 'copy-input') {\n    const el = document.getElementById(btn.getAttribute('data-target'));\n    if (el) copyText(el.value);\n  } else if (action === 'qr-input') {\n    const el = document.getElementById(btn.getAttribute('data-target'));\n    if (el) openQr(el.value, 'Subscription QR');\n  } else if (action === 'copy-text') {\n    const raw = btn.getAttribute('data-text');\n    if (raw) copyText(decodeURIComponent(raw));\n  } else if (action === 'qr-text') {\n    const raw = btn.getAttribute('data-text');\n    if (raw) openQr(decodeURIComponent(raw), btn.getAttribute('data-title') || 'QR Code');\n  }\n});\n\n// Routing\nfunction route() {\n  let hash = window.location.hash || '#/home';\n  if (hash === '#' || hash === '') hash = '#/home';\n  const pg = hash.replace(/^#\\/?/, '').split('?')[0].toLowerCase() || 'home';\n  let page = 'home';\n  if (pg === 'subs' || pg === 'sub') page = 'subs';\n  else if (pg === 'nodes' || pg === 'node') page = 'nodes';\n\n  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));\n  const viewMap = { home: 'viewHome', subs: 'viewSubs', nodes: 'viewNodes' };\n  document.getElementById(viewMap[page])?.classList.add('active');\n\n  document.querySelectorAll('.nav-link').forEach(el => {\n    el.classList.toggle('active', el.getAttribute('data-page') === page);\n  });\n\n  window.scrollTo({ top: 0 });\n}\n\nwindow.addEventListener('hashchange', route);\n\nfunction esc(str) {\n  if (!str) return '';\n  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');\n}\n\n// Render nodes\nfunction renderNodes(nodes) {\n  const c = document.getElementById('nodesContainer');\n  if (!c) return;\n\n  const active = (nodes || []).filter(n => {\n    if (!n || !n.uri) return false;\n    const t = (n.type || '').toLowerCase();\n    return !t.includes('hy2') && !t.includes('hysteria');\n  });\n\n  if (!active.length) {\n    c.innerHTML = '<p class=\"muted center\" style=\"grid-column:1/-1;padding:32px 0\">No active links.</p>';\n    return;\n  }\n\n  let html = '';\n  active.forEach((node, i) => {\n    const name = node.name || `Node ${i + 1}`;\n    const lt = (node.type || '').toLowerCase();\n\n    let proto = 'VLESS';\n    if (lt.includes('vmess')) proto = 'VMess';\n    else if (lt.includes('trojan')) proto = 'Trojan';\n    else if (lt.includes('shadowsocks') || lt.includes('ss')) proto = 'SS';\n    else if (lt.includes('wireguard') || lt.includes('wg')) proto = 'WG';\n    else if (lt.includes('tuic')) proto = 'TUIC';\n    else if (lt.includes('mtproto') || lt.includes('tg')) proto = 'MTProto';\n\n    let badges = '';\n    if (lt.includes('mtproto') || lt.includes('tg')) {\n      badges += '<span class=\"node-badge\">Telegram</span><span class=\"node-badge\">Fake-TLS</span>';\n    } else {\n      if (lt.includes('ws')) badges += '<span class=\"node-badge\">WS</span>';\n      else if (lt.includes('httpupgrade')) badges += '<span class=\"node-badge\">HTTPUpgrade</span>';\n      else if (lt.includes('grpc')) badges += '<span class=\"node-badge\">gRPC</span>';\n      else if (lt.includes('xhttp')) badges += '<span class=\"node-badge\">XHTTP</span>';\n\n      if (lt.includes('reality')) badges += '<span class=\"node-badge\">Reality</span>';\n      else if (lt.includes('tls')) badges += '<span class=\"node-badge\">TLS</span>';\n    }\n\n    const eu = encodeURIComponent(node.uri);\n\n    html += `<div class=\"node-card\">\n      <div class=\"node-top\">\n        <span class=\"node-proto\">${proto}</span>\n        <div class=\"node-badges\">${badges}</div>\n      </div>\n      <div class=\"node-name\" title=\"${esc(name)}\">${esc(name)}</div>\n      <input type=\"text\" class=\"node-uri\" readonly value=\"${esc(node.uri)}\" onclick=\"this.select()\">\n      <div class=\"node-actions\">\n        <button type=\"button\" class=\"btn\" data-action=\"copy-text\" data-text=\"${eu}\">Copy</button>\n        <button type=\"button\" class=\"btn\" data-action=\"qr-text\" data-text=\"${eu}\" data-title=\"${encodeURIComponent(name)}\">QR</button>\n        ${node.tmeUri ? `<a href=\"${esc(node.tmeUri)}\" class=\"btn\" target=\"_blank\">Connect</a>` : ''}\n      </div>\n    </div>`;\n  });\n\n  c.innerHTML = html;\n}\n\n// Load data\nasync function loadData() {\n  try {\n    const segs = window.location.pathname.split('/').filter(Boolean);\n    const prefix = segs[0] || 'mavis';\n\n    const res = await fetch('/health');\n    const data = await res.json();\n    gateData = data;\n\n    const port = data.publicPort || window.location.port || '2705';\n    const host = data.domain || data.host || window.location.hostname;\n    const loc = data.location || 'Global';\n\n    let uptime = '—';\n    if (data.uptime !== undefined) {\n      const m = Math.floor(data.uptime / 60);\n      const s = Math.floor(data.uptime % 60);\n      uptime = `${m}m ${s}s`;\n    }\n\n    const set = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };\n    set('homeLocation', loc);\n    set('homePort', port);\n    set('homeHost', host);\n    set('homeUptime', uptime);\n    set('nodesLocation', loc);\n\n    const engines = [];\n    if (data.engines?.worker) {\n      engines.push('Cloudflare Worker');\n      const protoContainer = document.getElementById('protoTagsContainer');\n      if (protoContainer) {\n        protoContainer.innerHTML = '<span class=\"proto-tag\">VLESS</span><span class=\"proto-tag\">WebSocket</span><span class=\"proto-tag\">TLS</span><span class=\"proto-tag\">CF Edge</span><span class=\"proto-tag\">Clean IP</span>';\n      }\n    }\n    if (data.engines?.singbox) engines.push('sing-box');\n    if (data.engines?.xray) engines.push('xray');\n    if (data.engines?.argo) engines.push('argo');\n    if (data.engines?.mtproto) engines.push('mtg');\n    set('homeEngine', engines.join(' + ') || 'sing-box');\n\n    let activeProto = (data.forceHttps || window.location.protocol === 'https:') ? 'https:' : 'http:';\n\n    const updateSubs = (proto) => {\n      let origin;\n      if (data.publicBaseUrl?.trim()) {\n        origin = data.publicBaseUrl.trim().replace(/\\/+$/, '');\n      } else if (data.subBase?.trim()) {\n        origin = data.subBase.trim().replace(/\\/+$/, '');\n      } else {\n        const hp = window.location.port ? `${window.location.hostname}:${window.location.port}` : window.location.hostname;\n        if (proto === 'https:') {\n          if (data.domain) origin = data.domain.startsWith('http') ? data.domain : `https://${data.domain}`;\n          else if (window.location.protocol === 'https:') origin = window.location.origin;\n          else origin = `https://${hp}`;\n        } else {\n          origin = `http://${hp}`;\n        }\n      }\n\n      const val = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };\n      val('urlSubCompat', `${origin}/${prefix}/base64`);\n      val('urlSubFull', `${origin}/${prefix}/base64?compat=full`);\n      val('urlClash', `${origin}/${prefix}/clash`);\n      val('urlSb', `${origin}/${prefix}/sb/raw`);\n      val('urlWgConf', `${origin}/${prefix}/wg.conf`);\n\n      const mtNode = data.nodes?.find(n => n.type === 'MTProto');\n      const mtUri = mtNode ? mtNode.uri : `${origin}/${prefix}/tg`;\n      const mtConnect = mtNode ? (mtNode.tmeUri || mtNode.uri) : `${origin}/${prefix}/tg`;\n      val('urlMtproto', mtUri);\n      const tgBtn = document.getElementById('btnConnectTg');\n      if (tgBtn) tgBtn.href = mtConnect;\n      const subRowMtproto = document.getElementById('subRowMtproto');\n      if (subRowMtproto) subRowMtproto.style.display = mtNode ? '' : 'none';\n\n      const wgNode = data.nodes?.find(n => n.type === 'WireGuard' || n.wgConf);\n      val('urlWgConf', `${origin}/${prefix}/wg.conf`);\n      const dlBtn = document.getElementById('btnDownloadWg');\n      if (dlBtn) dlBtn.href = `${origin}/${prefix}/wg.conf`;\n      const subRowWg = document.getElementById('subRowWg');\n      if (subRowWg) subRowWg.style.display = wgNode ? '' : 'none';\n    };\n\n    updateSubs(activeProto);\n\n    const btnHttp = document.getElementById('btnProtoHttp');\n    const btnHttps = document.getElementById('btnProtoHttps');\n    if (btnHttp && btnHttps) {\n      btnHttp.classList.toggle('active', activeProto === 'http:');\n      btnHttps.classList.toggle('active', activeProto === 'https:');\n\n      btnHttp.onclick = () => {\n        activeProto = 'http:';\n        btnHttp.classList.add('active');\n        btnHttps.classList.remove('active');\n        updateSubs('http:');\n        showToast('HTTP');\n      };\n      btnHttps.onclick = () => {\n        activeProto = 'https:';\n        btnHttps.classList.add('active');\n        btnHttp.classList.remove('active');\n        updateSubs('https:');\n        showToast('HTTPS');\n      };\n    }\n\n    renderNodes(data.nodes);\n\n  } catch (err) {\n    console.error('Load failed:', err);\n    const c = document.getElementById('nodesContainer');\n    if (c) c.innerHTML = '<p class=\"muted center\" style=\"grid-column:1/-1;padding:32px 0\">Failed to connect.</p>';\n  }\n}\n\ndocument.addEventListener('DOMContentLoaded', () => {\n  route();\n  loadData();\n});\n",
   logoSvg: "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"currentColor\">\n  <path d=\"M12 4.5c.7 0 1.2.5 1.4 1.1.3.8 1 1.4 1.9 1.6 1.2.2 2.5-.3 3.8-1.3.6-.4 1.4-.2 1.8.4.3.5.2 1.3-.3 1.7-1.3 1.1-2.2 2.4-2.6 3.9-.3 1.1.1 2.3.9 3.2 1.3 1.1 2.9 1.7 4.7 1.7.7 0 1.3.6 1.3 1.3 0 .7-.6 1.3-1.3 1.3-3 0-5.7-1.1-7.8-2.9-.9-.8-2.2-1.3-3.8-1.3s-2.9.5-3.8 1.3c-2.1 1.8-4.8 2.9-7.8 2.9-.7 0-1.3-.6-1.3-1.3 0-.7.6-1.3 1.3-1.3 1.8 0 3.4-.6 4.7-1.7.8-.9 1.2-2.1.9-3.2-.4-1.5-1.3-2.8-2.6-3.9-.5-.4-.6-1.2-.3-1.7.4-.6 1.2-.8 1.8-.4 1.3 1 2.6 1.5 3.8 1.3.9-.2 1.6-.8 1.9-1.6.2-.6.7-1.1 1.4-1.1z\"/>\n</svg>\n"
 };
 
@@ -46,8 +46,11 @@ class AssetManager {
         const full = path.join(d, name);
         try {
           if (fs.existsSync(full)) {
-            const buf = fs.readFileSync(full);
-            if (buf && buf.length > 0) return buf;
+            const stat = fs.statSync(full);
+            if (stat.size > 0 && stat.size <= 2 * 1024 * 1024) {
+              const buf = fs.readFileSync(full);
+              if (buf && buf.length > 0) return buf;
+            }
           }
         } catch (_) {}
       }
@@ -225,6 +228,97 @@ class Logger {
       console.log(`\n${ANSI.bold}${ANSI.electric}--- ${title} ---${ANSI.reset}`);
     }
   }
+
+  static readTailSync(filePath, maxBytes) {
+    return readTailSync(filePath, maxBytes);
+  }
+
+  static rotateLogIfNeeded(filePath, maxSizeBytes, retainBytes) {
+    return rotateLogIfNeeded(filePath, maxSizeBytes, retainBytes);
+  }
+}
+
+/**
+ * Safe, bounded tail reader: reads up to maxBytes from the end of a file.
+ * Allocates at most maxBytes in memory, preventing high memory usage or OOM.
+ * @param {string} filePath - Path to file
+ * @param {number} maxBytes - Maximum number of bytes to read from end of file (default 64KB)
+ * @returns {string} - Tail text as UTF-8 string, or empty string on error / missing file
+ */
+function readTailSync(filePath, maxBytes = 64 * 1024) {
+  try {
+    if (!filePath || typeof filePath !== 'string' || !fs.existsSync(filePath)) return '';
+    const stat = fs.statSync(filePath);
+    if (!stat.size || stat.size <= 0) return '';
+    const bytesToRead = Math.min(stat.size, maxBytes);
+    const buffer = Buffer.alloc(bytesToRead);
+    const fd = fs.openSync(filePath, 'r');
+    try {
+      const position = stat.size - bytesToRead;
+      fs.readSync(fd, buffer, 0, bytesToRead, position);
+      return buffer.toString('utf8');
+    } finally {
+      try { fs.closeSync(fd); } catch {}
+    }
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Safe log rotation & in-place truncation helper:
+ * If the log file exceeds maxSizeBytes, truncates it in-place and preserves the last retainBytes.
+ * Using in-place write keeps open O_APPEND file descriptors held by child processes valid.
+ * @param {string} filePath - Path to log file
+ * @param {number} maxSizeBytes - Size threshold to trigger rotation (default 5MB)
+ * @param {number} retainBytes - Number of recent bytes to retain from tail (default 256KB)
+ * @returns {boolean} - True if truncated/rotated, false otherwise
+ */
+function rotateLogIfNeeded(filePath, maxSizeBytes = 5 * 1024 * 1024, retainBytes = 256 * 1024) {
+  try {
+    if (!filePath || typeof filePath !== 'string' || !fs.existsSync(filePath)) return false;
+    const stat = fs.statSync(filePath);
+    if (stat.size < maxSizeBytes) return false;
+
+    const bytesToKeep = Math.min(stat.size, retainBytes);
+    let tailBuffer = null;
+    if (bytesToKeep > 0) {
+      tailBuffer = Buffer.alloc(bytesToKeep);
+      const rfd = fs.openSync(filePath, 'r');
+      try {
+        fs.readSync(rfd, tailBuffer, 0, bytesToKeep, stat.size - bytesToKeep);
+      } finally {
+        try { fs.closeSync(rfd); } catch {}
+      }
+
+      // If we trimmed from the middle of the file, strip any initial broken line
+      if (bytesToKeep < stat.size) {
+        const newlineIdx = tailBuffer.indexOf(0x0a);
+        if (newlineIdx !== -1 && newlineIdx < tailBuffer.length - 1) {
+          tailBuffer = tailBuffer.subarray(newlineIdx + 1);
+        }
+      }
+    }
+
+    const prevMb = (stat.size / (1024 * 1024)).toFixed(2);
+    const header = Buffer.from(
+      `\n--- [LOG ROTATED & TRUNCATED at ${new Date().toISOString()} (previous size: ${prevMb} MB)] ---\n`,
+      'utf8'
+    );
+
+    const wfd = fs.openSync(filePath, 'w');
+    try {
+      fs.writeSync(wfd, header);
+      if (tailBuffer && tailBuffer.length > 0) {
+        fs.writeSync(wfd, tailBuffer);
+      }
+    } finally {
+      try { fs.closeSync(wfd); } catch {}
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 
@@ -267,7 +361,17 @@ const DEFAULT_CONFIG = {
     tuic: false,
     socks: false,
     httpProxy: false,
-    argo: false
+    argo: false,
+    mtproto: true
+  },
+  mtproto: {
+    sni: 'www.google.com',
+    secret: '',
+    concurrency: 512,
+    preferIp: 'prefer-ipv4',
+    tolerateTimeSkewness: '120s',
+    socks5: '',
+    port: null
   },
   argo: {
     domain: '',
@@ -307,9 +411,12 @@ const DEFAULT_CONFIG = {
   },
   singBoxVersion: '1.11.15',
   xrayVersion: '',
+  mtgVersion: '2.2.8',
   panelToken: '',
   cpuLimitPercent: null,
-  quietConsoleAfterMs: 180000
+  quietConsoleAfterMs: 180000,
+  logLevel: 'warn',
+  maxLogSizeMb: 5
 };
 
 /**
@@ -405,6 +512,19 @@ function buildConfig(userOverrides = {}) {
   if (env.ENABLE_SOCKS !== undefined) cfg.enable.socks = parseBool(env.ENABLE_SOCKS, cfg.enable.socks);
   if (env.ENABLE_HTTP_PROXY !== undefined) cfg.enable.httpProxy = parseBool(env.ENABLE_HTTP_PROXY, cfg.enable.httpProxy);
   if (env.ENABLE_ARGO !== undefined) cfg.enable.argo = parseBool(env.ENABLE_ARGO, cfg.enable.argo);
+  if (env.ENABLE_MTPROTO !== undefined) cfg.enable.mtproto = parseBool(env.ENABLE_MTPROTO, cfg.enable.mtproto);
+
+  if (env.MTPROTO_SNI || env.MTPROTO_DOMAIN) cfg.mtproto.sni = env.MTPROTO_SNI || env.MTPROTO_DOMAIN;
+  if (env.MTPROTO_SECRET) cfg.mtproto.secret = env.MTPROTO_SECRET;
+  if (env.MTPROTO_PORT) cfg.mtproto.port = parseInt(env.MTPROTO_PORT, 10);
+  if (env.MTPROTO_CONCURRENCY) {
+    const parsedConc = parseInt(env.MTPROTO_CONCURRENCY, 10);
+    if (!isNaN(parsedConc) && parsedConc > 0) cfg.mtproto.concurrency = parsedConc;
+  }
+  if (env.MTPROTO_PREFER_IP) cfg.mtproto.preferIp = env.MTPROTO_PREFER_IP;
+  if (env.MTPROTO_TIME_SKEW) cfg.mtproto.tolerateTimeSkewness = env.MTPROTO_TIME_SKEW;
+  if (env.MTPROTO_SOCKS5) cfg.mtproto.socks5 = env.MTPROTO_SOCKS5;
+  if (env.MTG_VERSION) cfg.mtgVersion = env.MTG_VERSION;
 
   if (env.WG_PORT) cfg.wireguard.port = parseInt(env.WG_PORT, 10);
   if (env.WG_SERVER_IP) cfg.wireguard.serverIp = env.WG_SERVER_IP;
@@ -429,6 +549,14 @@ function buildConfig(userOverrides = {}) {
 
   if (env.CPU_LIMIT_PERCENT) cfg.cpuLimitPercent = parseInt(env.CPU_LIMIT_PERCENT, 10);
 
+  if (env.LOG_LEVEL || env.SINGBOX_LOG_LEVEL) cfg.logLevel = (env.LOG_LEVEL || env.SINGBOX_LOG_LEVEL).toLowerCase();
+  if (env.XRAY_LOG_LEVEL) cfg.xrayLogLevel = env.XRAY_LOG_LEVEL.toLowerCase();
+  if (env.ARGO_LOG_LEVEL) cfg.argoLogLevel = env.ARGO_LOG_LEVEL.toLowerCase();
+  if (env.MAX_LOG_SIZE_MB) {
+    const parsedMb = parseInt(env.MAX_LOG_SIZE_MB, 10);
+    if (!isNaN(parsedMb) && parsedMb > 0) cfg.maxLogSizeMb = parsedMb;
+  }
+
   // Data paths
   const dataDir = resolveDataDir(cfg.dataDirHint);
   const paths = {
@@ -445,7 +573,10 @@ function buildConfig(userOverrides = {}) {
     xrayConfig: path.join(dataDir, 'xray.json'),
     xrayLog: path.join(dataDir, 'xray.log'),
     cloudflaredBin: path.join(dataDir, 'bin', os.platform() === 'win32' ? 'cloudflared.exe' : 'cloudflared'),
-    cloudflaredLog: path.join(dataDir, 'cloudflared.log')
+    cloudflaredLog: path.join(dataDir, 'cloudflared.log'),
+    mtgBin: path.join(dataDir, 'bin', os.platform() === 'win32' ? 'mtg.exe' : 'mtg'),
+    mtgConfig: path.join(dataDir, 'mtg.toml'),
+    mtgLog: path.join(dataDir, 'mtg.log')
   };
 
   return {
@@ -519,6 +650,7 @@ class StateManager {
       realityShortId: '',
       shadowTlsPassword: '',
       shadowsocksPassword: '',
+      mtprotoSecret: '',
       wireguardPrivateKey: '',
       wireguardPublicKey: '',
       wireguardClientPrivateKey: '',
@@ -537,9 +669,12 @@ class StateManager {
     try {
       fs.mkdirSync(this.paths.dataDir, { recursive: true });
       if (fs.existsSync(this.paths.stateFile)) {
-        const raw = fs.readFileSync(this.paths.stateFile, 'utf8');
-        const parsed = JSON.parse(raw);
-        this.state = { ...this.state, ...parsed };
+        const stat = fs.statSync(this.paths.stateFile);
+        if (stat.size > 0 && stat.size < 1024 * 1024) {
+          const raw = fs.readFileSync(this.paths.stateFile, 'utf8');
+          const parsed = JSON.parse(raw);
+          this.state = { ...this.state, ...parsed };
+        }
       }
     } catch (err) {
       Logger.warn(`Failed to read existing state.json: ${err.message}. Generating fresh state.`);
@@ -577,6 +712,23 @@ class StateManager {
       this.state.realityShortId = this.config.reality.shortId;
     } else if (!this.state.realityShortId) {
       this.state.realityShortId = crypto.randomBytes(4).toString('hex');
+    }
+
+    // MTProto Fake-TLS Secret
+    const targetSni = ((this.config.mtproto && this.config.mtproto.sni) || 'www.google.com').trim().toLowerCase();
+    const targetHex = Buffer.from(targetSni, 'ascii').toString('hex');
+    if (this.config.mtproto && this.config.mtproto.secret) {
+      this.state.mtprotoSecret = this.config.mtproto.secret;
+    } else if (!this.state.mtprotoSecret) {
+      this.state.mtprotoSecret = 'ee' + crypto.randomBytes(16).toString('hex') + targetHex;
+    } else {
+      // Auto-migrate from blocked legacy 'dns.google' or update if user changed MTPROTO_SNI
+      const current = this.state.mtprotoSecret.toLowerCase();
+      if (current.startsWith('ee') && current.length >= 34 && !current.endsWith(targetHex)) {
+        const keyPart = current.slice(0, 34); // 'ee' + 32-char hex key
+        this.state.mtprotoSecret = keyPart + targetHex;
+        Logger.info(`MTProto secret auto-migrated / updated to clean SNI (${targetSni})`);
+      }
     }
 
     // WireGuard
@@ -627,6 +779,11 @@ class StateManager {
     this.save();
   }
 
+  setMtprotoSecret(secret) {
+    this.state.mtprotoSecret = secret;
+    this.save();
+  }
+
   setWireGuardKeys(serverPriv, serverPub, clientPriv, clientPub) {
     this.state.wireguardPrivateKey = serverPriv;
     this.state.wireguardPublicKey = serverPub;
@@ -670,9 +827,9 @@ StateManager.deriveX25519PublicKey = deriveX25519PublicKey;
 function getNormalizedArch() {
   const arch = os.arch();
   if (arch === 'arm64' || arch === 'aarch64') {
-    return { sb: 'arm64', xray: 'arm64-v8a', cf: 'arm64' };
+    return { sb: 'arm64', xray: 'arm64-v8a', cf: 'arm64', mtg: 'arm64' };
   }
-  return { sb: 'amd64', xray: '64', cf: 'amd64' };
+  return { sb: 'amd64', xray: '64', cf: 'amd64', mtg: 'amd64' };
 }
 
 /**
@@ -903,6 +1060,109 @@ class BinaryManager {
       return false;
     }
   }
+
+  async ensureMtg() {
+    this.ensureDirectories();
+    const bin = this.paths.mtgBin;
+
+    if (fs.existsSync(bin)) {
+      try {
+        const stat = fs.statSync(bin);
+        if (stat.size > 1024 * 1024) {
+          if (os.platform() !== 'win32') fs.chmodSync(bin, 0o755);
+          return true;
+        }
+      } catch {}
+    }
+
+    const freeMb = checkDiskSpaceMb(this.paths.binDir);
+    if (freeMb !== null && freeMb < 30) {
+      Logger.warn(`Low disk space (~${freeMb}MB free). Skipping MTProto (mtg) download.`);
+      return false;
+    }
+
+    const ver = this.config.mtgVersion || '2.2.8';
+    const osType = os.platform() === 'win32' ? 'windows' : 'linux';
+    const arch = this.arch.mtg || (this.arch.sb === 'arm64' ? 'arm64' : 'amd64');
+    const ext = osType === 'windows' ? 'zip' : 'tar.gz';
+    const tarName = `mtg-${ver}-${osType}-${arch}.${ext}`;
+    const url = process.env.MTG_URL || `https://github.com/9seconds/mtg/releases/download/v${ver}/${tarName}`;
+    const archivePath = path.join(this.paths.binDir, tarName);
+
+    Logger.step(`Downloading Telegram MTProto engine (mtg v${ver} for ${osType}-${arch})...`);
+
+    try {
+      await downloadToFile(url, archivePath);
+
+      if (osType === 'linux') {
+        const extDir = path.join(this.paths.binDir, `mtg_extract_${Date.now()}`);
+        fs.mkdirSync(extDir, { recursive: true });
+        const tarRes = spawnSync('tar', ['-xzf', archivePath, '-C', extDir]);
+        if (tarRes.status !== 0) throw new Error(`tar extraction failed: ${tarRes.stderr}`);
+
+        const files = fs.readdirSync(extDir);
+        let foundBin = null;
+        for (const f of files) {
+          const sub = path.join(extDir, f);
+          if (fs.statSync(sub).isDirectory()) {
+            const candidate = path.join(sub, 'mtg');
+            if (fs.existsSync(candidate)) {
+              foundBin = candidate;
+              break;
+            }
+          }
+        }
+
+        if (!foundBin && fs.existsSync(path.join(extDir, 'mtg'))) {
+          foundBin = path.join(extDir, 'mtg');
+        }
+
+        if (!foundBin) throw new Error('mtg binary not found in archive');
+
+        fs.copyFileSync(foundBin, bin);
+        fs.chmodSync(bin, 0o755);
+
+        try {
+          fs.unlinkSync(archivePath);
+          fs.rmSync(extDir, { recursive: true, force: true });
+        } catch {}
+      } else {
+        const extDir = path.join(this.paths.binDir, `mtg_extract_${Date.now()}`);
+        fs.mkdirSync(extDir, { recursive: true });
+        const unzipRes = spawnSync('unzip', ['-o', archivePath, '-d', extDir]);
+        let foundBin = null;
+        if (unzipRes.status === 0) {
+          const files = fs.readdirSync(extDir);
+          for (const f of files) {
+            const sub = path.join(extDir, f);
+            if (fs.statSync(sub).isDirectory()) {
+              const candidate = path.join(sub, 'mtg.exe');
+              if (fs.existsSync(candidate)) {
+                foundBin = candidate;
+                break;
+              }
+            }
+          }
+        }
+        if (!foundBin && fs.existsSync(path.join(extDir, 'mtg.exe'))) {
+          foundBin = path.join(extDir, 'mtg.exe');
+        }
+        if (foundBin) {
+          fs.copyFileSync(foundBin, bin);
+        }
+        try {
+          fs.unlinkSync(archivePath);
+          fs.rmSync(extDir, { recursive: true, force: true });
+        } catch {}
+      }
+
+      Logger.success('Telegram MTProto engine (mtg) installed successfully.');
+      return true;
+    } catch (err) {
+      Logger.warn(`Optional MTProto (mtg) download skipped: ${err.message}. MTProto proxy will be inactive.`);
+      return false;
+    }
+  }
 }
 
 
@@ -967,10 +1227,14 @@ function generateSelfSignedCert(commonName = 'localhost') {
 function ensureTlsCertificates(certPath, keyPath, sni = 'localhost') {
   try {
     if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
-      const c = fs.readFileSync(certPath, 'utf8');
-      const k = fs.readFileSync(keyPath, 'utf8');
-      if (c.includes('BEGIN CERTIFICATE') && k.includes('PRIVATE KEY')) {
-        return { cert: c, key: k };
+      const cStat = fs.statSync(certPath);
+      const kStat = fs.statSync(keyPath);
+      if (cStat.size < 1024 * 1024 && kStat.size < 1024 * 1024) {
+        const c = fs.readFileSync(certPath, 'utf8');
+        const k = fs.readFileSync(keyPath, 'utf8');
+        if (c.includes('BEGIN CERTIFICATE') && k.includes('PRIVATE KEY')) {
+          return { cert: c, key: k };
+        }
       }
     }
   } catch (_) {}
@@ -990,10 +1254,14 @@ function ensureTlsCertificates(certPath, keyPath, sni = 'localhost') {
       '-days', '365'
     ], { timeout: 15000 });
     if (res.status === 0 && fs.existsSync(certPath) && fs.existsSync(keyPath)) {
-      return {
-        cert: fs.readFileSync(certPath, 'utf8'),
-        key: fs.readFileSync(keyPath, 'utf8')
-      };
+      const cStat = fs.statSync(certPath);
+      const kStat = fs.statSync(keyPath);
+      if (cStat.size < 1024 * 1024 && kStat.size < 1024 * 1024) {
+        return {
+          cert: fs.readFileSync(certPath, 'utf8'),
+          key: fs.readFileSync(keyPath, 'utf8')
+        };
+      }
     }
   } catch (_) {}
 
@@ -1018,6 +1286,7 @@ class SingBoxEngine {
     this.stateManager = stateManager;
     this.ports = allocatedPorts;
     this.process = null;
+    this.logRotatorTimer = null;
   }
 
   generateRealityKeys() {
@@ -1325,9 +1594,12 @@ class SingBoxEngine {
       });
     }
 
+    let logLevel = (this.config.logLevel || this.config.singboxLogLevel || 'warn').toLowerCase();
+    if (logLevel === 'warning') logLevel = 'warn';
+
     const cfg = {
       log: {
-        level: 'info',
+        level: logLevel,
         timestamp: true
       },
       inbounds,
@@ -1445,17 +1717,29 @@ class SingBoxEngine {
     fs.writeFileSync(this.paths.singboxConfig, JSON.stringify(configData, null, 2), 'utf8');
     Logger.success('sing-box configuration validated.');
 
+    const maxLogSize = (this.config.maxLogSizeMb || 5) * 1024 * 1024;
+    rotateLogIfNeeded(this.paths.singboxLog, maxLogSize);
+
     const logFd = fs.openSync(this.paths.singboxLog, 'a');
     this.process = spawn(this.paths.singboxBin, ['run', '-c', this.paths.singboxConfig], {
       stdio: ['ignore', logFd, logFd],
       detached: false
     });
 
+    this.logRotatorTimer = setInterval(() => {
+      rotateLogIfNeeded(this.paths.singboxLog, maxLogSize);
+    }, 60000);
+    if (this.logRotatorTimer.unref) this.logRotatorTimer.unref();
+
     this.process.on('error', (err) => {
       Logger.error(`sing-box process error: ${err.message}`);
     });
 
     this.process.on('exit', (code, sig) => {
+      if (this.logRotatorTimer) {
+        clearInterval(this.logRotatorTimer);
+        this.logRotatorTimer = null;
+      }
       try { fs.closeSync(logFd); } catch {}
       if (code !== 0 && code !== null) {
         Logger.warn(`sing-box exited with code ${code} (${sig || 'none'})`);
@@ -1466,6 +1750,10 @@ class SingBoxEngine {
   }
 
   stop() {
+    if (this.logRotatorTimer) {
+      clearInterval(this.logRotatorTimer);
+      this.logRotatorTimer = null;
+    }
     if (this.process && !this.process.killed) {
       try {
         this.process.kill('SIGTERM');
@@ -1483,15 +1771,19 @@ class XrayEngine {
     this.stateManager = stateManager;
     this.port = localPort;
     this.process = null;
+    this.logRotatorTimer = null;
   }
 
   buildConfig() {
     const state = this.stateManager.state;
     const xhttpPath = `/${this.config.panelPath}-xh`;
 
+    let xrayLogLevel = (this.config.xrayLogLevel || this.config.logLevel || 'warning').toLowerCase();
+    if (xrayLogLevel === 'warn') xrayLogLevel = 'warning';
+
     return {
       log: {
-        loglevel: 'warning'
+        loglevel: xrayLogLevel
       },
       inbounds: [
         {
@@ -1533,17 +1825,29 @@ class XrayEngine {
     const cfg = this.buildConfig();
     fs.writeFileSync(this.paths.xrayConfig, JSON.stringify(cfg, null, 2), 'utf8');
 
+    const maxLogSize = (this.config.maxLogSizeMb || 5) * 1024 * 1024;
+    rotateLogIfNeeded(this.paths.xrayLog, maxLogSize);
+
     const logFd = fs.openSync(this.paths.xrayLog, 'a');
     this.process = spawn(this.paths.xrayBin, ['run', '-c', this.paths.xrayConfig], {
       stdio: ['ignore', logFd, logFd],
       detached: false
     });
 
+    this.logRotatorTimer = setInterval(() => {
+      rotateLogIfNeeded(this.paths.xrayLog, maxLogSize);
+    }, 60000);
+    if (this.logRotatorTimer.unref) this.logRotatorTimer.unref();
+
     this.process.on('error', (err) => {
       Logger.warn(`Xray engine error: ${err.message}`);
     });
 
     this.process.on('exit', () => {
+      if (this.logRotatorTimer) {
+        clearInterval(this.logRotatorTimer);
+        this.logRotatorTimer = null;
+      }
       try { fs.closeSync(logFd); } catch {}
     });
 
@@ -1552,6 +1856,10 @@ class XrayEngine {
   }
 
   stop() {
+    if (this.logRotatorTimer) {
+      clearInterval(this.logRotatorTimer);
+      this.logRotatorTimer = null;
+    }
     if (this.process && !this.process.killed) {
       try {
         this.process.kill('SIGTERM');
@@ -1569,6 +1877,7 @@ class ArgoTunnel {
     this.targetPort = targetPort;
     this.process = null;
     this.tunnelDomain = '';
+    this.logRotatorTimer = null;
   }
 
   async discoverDomain(timeoutMs = 45000) {
@@ -1583,15 +1892,15 @@ class ArgoTunnel {
         } catch {}
       }
 
-      if (fs.existsSync(this.paths.cloudflaredLog)) {
-        try {
-          const logContent = fs.readFileSync(this.paths.cloudflaredLog, 'utf8');
+      try {
+        const logContent = readTailSync(this.paths.cloudflaredLog, 64 * 1024);
+        if (logContent) {
           const match = logContent.match(/https?:\/\/([a-z0-9-]+\.trycloudflare\.com)/i);
           if (match) {
             return match[1].toLowerCase();
           }
-        } catch {}
-      }
+        }
+      } catch {}
 
       await new Promise(r => setTimeout(r, 2000));
     }
@@ -1612,17 +1921,33 @@ class ArgoTunnel {
 
     // Quick tunnel
     Logger.step('Launching Cloudflare Argo Quick Tunnel...');
+    const maxLogSize = (this.config.maxLogSizeMb || 5) * 1024 * 1024;
+    rotateLogIfNeeded(this.paths.cloudflaredLog, maxLogSize);
     const logFd = fs.openSync(this.paths.cloudflaredLog, 'a');
 
+    let argoLogLevel = (this.config.argoLogLevel || this.config.logLevel || 'warn').toLowerCase();
+    if (argoLogLevel === 'warning') argoLogLevel = 'warn';
+
     this.process = spawn(this.paths.cloudflaredBin, [
-      'tunnel', '--no-autoupdate', '--metrics', '127.0.0.1:2000',
+      'tunnel', '--no-autoupdate',
+      '--loglevel', argoLogLevel,
+      '--metrics', '127.0.0.1:2000',
       '--url', `http://127.0.0.1:${this.targetPort}`
     ], {
       stdio: ['ignore', logFd, logFd],
       detached: false
     });
 
+    this.logRotatorTimer = setInterval(() => {
+      rotateLogIfNeeded(this.paths.cloudflaredLog, maxLogSize);
+    }, 60000);
+    if (this.logRotatorTimer.unref) this.logRotatorTimer.unref();
+
     this.process.on('exit', () => {
+      if (this.logRotatorTimer) {
+        clearInterval(this.logRotatorTimer);
+        this.logRotatorTimer = null;
+      }
       try { fs.closeSync(logFd); } catch {}
     });
 
@@ -1637,8 +1962,135 @@ class ArgoTunnel {
   }
 
   stop() {
+    if (this.logRotatorTimer) {
+      clearInterval(this.logRotatorTimer);
+      this.logRotatorTimer = null;
+    }
     if (this.process && !this.process.killed) {
       try { this.process.kill('SIGTERM'); } catch {}
+    }
+  }
+}
+
+
+// --- Module: lib/engines/mtproto.js ---
+class MtgEngine {
+  constructor(config, stateManager, localPort) {
+    this.config = config;
+    this.paths = config.paths;
+    this.stateManager = stateManager;
+    this.port = localPort;
+    this.process = null;
+    this.logRotatorTimer = null;
+  }
+
+  buildTomlConfig(secret) {
+    const concurrency = (this.config.mtproto && this.config.mtproto.concurrency) || 512;
+    const preferIp = (this.config.mtproto && this.config.mtproto.preferIp) || 'prefer-ipv4';
+    const timeSkew = (this.config.mtproto && this.config.mtproto.tolerateTimeSkewness) || '120s';
+    const socks5 = (this.config.mtproto && this.config.mtproto.socks5) || '';
+
+    let toml = `# Mavis Panel MTProto Engine (mtg) configuration
+secret = ${JSON.stringify(secret)}
+bind-to = "127.0.0.1:${this.port}"
+concurrency = ${concurrency}
+prefer-ip = "${preferIp}"
+tolerate-time-skewness = "${timeSkew}"
+allow-fallback-on-unknown-dc = true
+
+[network.timeout]
+tcp = "5s"
+http = "10s"
+idle = "5m"
+handshake = "10s"
+
+[defense.anti-replay]
+enabled = true
+max-size = "1mib"
+
+# Blocklist disabled to prevent false-positive bans of client/loopback subnets
+[defense.blocklist]
+enabled = false
+`;
+
+    if (socks5) {
+      toml += `
+[network]
+proxies = [
+  ${JSON.stringify(socks5)}
+]
+`;
+    }
+
+    return toml;
+  }
+
+  start() {
+    if (!this.config.enable.mtproto || !fs.existsSync(this.paths.mtgBin)) {
+      Logger.warn('mtg binary missing or MTProto disabled. MTProto engine skipped.');
+      return false;
+    }
+
+    const secret = this.stateManager.state.mtprotoSecret;
+    if (!secret) {
+      Logger.warn('MTProto secret missing in state. MTProto engine skipped.');
+      return false;
+    }
+
+    const maxLogSize = (this.config.maxLogSizeMb || 5) * 1024 * 1024;
+    rotateLogIfNeeded(this.paths.mtgLog, maxLogSize);
+
+    // Write robust TOML config with generous time skew and disabled FireHOL blocklist
+    const tomlContent = this.buildTomlConfig(secret);
+    try {
+      fs.writeFileSync(this.paths.mtgConfig, tomlContent, 'utf8');
+    } catch (err) {
+      Logger.warn(`Failed to write mtg.toml: ${err.message}`);
+    }
+
+    const args = ['run', this.paths.mtgConfig];
+
+    Logger.step(`Launching Telegram MTProto proxy (mtg) on local port ${this.port}...`);
+    const logFd = fs.openSync(this.paths.mtgLog, 'a');
+
+    this.process = spawn(this.paths.mtgBin, args, {
+      stdio: ['ignore', logFd, logFd],
+      detached: false
+    });
+
+    this.logRotatorTimer = setInterval(() => {
+      rotateLogIfNeeded(this.paths.mtgLog, maxLogSize);
+    }, 60000);
+    if (this.logRotatorTimer.unref) this.logRotatorTimer.unref();
+
+    this.process.on('error', (err) => {
+      Logger.warn(`MTProto mtg engine error: ${err.message}`);
+    });
+
+    this.process.on('exit', (code, sig) => {
+      if (this.logRotatorTimer) {
+        clearInterval(this.logRotatorTimer);
+        this.logRotatorTimer = null;
+      }
+      try { fs.closeSync(logFd); } catch {}
+      if (code !== 0 && code !== null) {
+        Logger.warn(`mtg process exited with code ${code} (${sig || 'none'})`);
+      }
+    });
+
+    Logger.success(`Telegram MTProto engine (mtg) running on local port ${this.port}.`);
+    return true;
+  }
+
+  stop() {
+    if (this.logRotatorTimer) {
+      clearInterval(this.logRotatorTimer);
+      this.logRotatorTimer = null;
+    }
+    if (this.process && !this.process.killed) {
+      try {
+        this.process.kill('SIGTERM');
+      } catch {}
     }
   }
 }
@@ -1690,6 +2142,16 @@ function isValidNode(node, options = {}) {
     }
 
     const parsed = new URL(uri);
+
+    // Special handling for tg:// (Telegram MTProto link: tg://proxy?server=...&port=...&secret=...)
+    if (scheme === 'tg') {
+      if (compatMode === 'v2ray') return false;
+      const server = parsed.searchParams.get('server');
+      const secret = parsed.searchParams.get('secret');
+      if (!server || !secret) return false;
+      if (!allowLocalHostLinks && isLocalAddress(server)) return false;
+      return true;
+    }
 
     // Check host
     if (!allowLocalHostLinks && isLocalAddress(parsed.hostname)) {
@@ -1793,6 +2255,39 @@ class LinkGenerator {
 
   generateHysteria2() {
     return null; // Hysteria removed as requested
+  }
+
+  generateMtproto() {
+    if (!this.config.enable.mtproto) return null;
+    const secret = this.state.mtprotoSecret;
+    if (!secret) return null;
+
+    let sni = (this.config.mtproto && this.config.mtproto.sni) || 'www.google.com';
+    if (secret.toLowerCase().startsWith('ee') && secret.length > 34) {
+      try {
+        const dHex = secret.slice(34);
+        const parsed = Buffer.from(dHex, 'hex').toString('ascii').trim();
+        if (parsed) sni = parsed;
+      } catch {}
+    }
+    const port = (this.config.mtproto && this.config.mtproto.port) || this.port;
+    const name = `${this.prefix}MTProto`;
+
+    const uri = `tg://proxy?server=${this.host}&port=${port}&secret=${secret}`;
+    const tmeUri = `https://t.me/proxy?server=${this.host}&port=${port}&secret=${secret}`;
+
+    return {
+      name,
+      type: 'MTProto',
+      label: 'Telegram MTProto Proxy (Fake-TLS)',
+      compat: true,
+      uri,
+      tmeUri,
+      note: `Fake-TLS SNI: ${sni}`,
+      clash: null,
+      singboxOutbound: null,
+      singboxJson: null
+    };
   }
 
   generateVlessWs() {
@@ -2568,6 +3063,7 @@ class LinkGenerator {
     }
 
     const all = [
+      this.generateMtproto(),
       this.generateReality(),
       this.generateVlessWsTls(),
       this.generateTrojanGrpcTls(),
@@ -2860,6 +3356,7 @@ function createHttpPanel(config, stateManager, engineStatusGetter, resolvedHostG
         type: node.type,
         compat: node.compat,
         uri: node.uri,
+        tmeUri: node.tmeUri || null,
         wgConf: node.wgConf || null,
         singboxJson: node.singboxJson || null,
         note: node.note || null
@@ -2992,6 +3489,29 @@ function createHttpPanel(config, stateManager, engineStatusGetter, resolvedHostG
     }
   });
 
+  // Telegram MTProto Direct Link & Redirect
+  app.get([`/${panelPath}/tg`, `/${panelPath}/mtproto`, '/tg', '/mtproto'], authMiddleware, (req, res) => {
+    try {
+      const host = getRequestHost(req);
+      const linkGen = new LinkGenerator(config, stateManager.state, host);
+      const node = linkGen.generateMtproto();
+      if (!node) {
+        return res.status(404).send('MTProto proxy is disabled or not configured.\n');
+      }
+
+      const accept = req.headers.accept || '';
+      if (accept.includes('text/html') && !req.query.raw) {
+        return res.redirect(node.tmeUri);
+      }
+
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.send(`${node.uri}\n${node.tmeUri}\n`);
+    } catch (err) {
+      res.status(500).send(`MTProto endpoint error: ${err.message}\n`);
+    }
+  });
+
   const server = http.createServer(app);
   server.keepAliveTimeout = 120000;
   server.headersTimeout = 125000;
@@ -3001,14 +3521,33 @@ function createHttpPanel(config, stateManager, engineStatusGetter, resolvedHostG
 
 // --- Module: lib/mux/tcp-router.js ---
 class TcpRouter {
-  constructor(config, targetPorts, expressServer, expressApp) {
+  constructor(config, targetPorts, expressServer, expressApp, stateManager = null) {
     this.config = config;
     this.ports = targetPorts;
     this.httpServer = expressServer;
     this.expressApp = expressApp || (expressServer && expressServer.listeners('request')[0]);
+    this.stateManager = stateManager;
     this.server = null;
     this.httpsServer = null;
     this.internalHttpsPort = null;
+    this.mtprotoServer = null;
+  }
+
+  getMtprotoSniList() {
+    const list = new Set();
+    const cfgSni = (this.config.mtproto && this.config.mtproto.sni) || 'www.google.com';
+    list.add(cfgSni.toLowerCase().trim().replace(/\.$/, ''));
+
+    const sec = this.stateManager?.state?.mtprotoSecret || (this.config.mtproto && this.config.mtproto.secret);
+    if (sec && typeof sec === 'string' && sec.toLowerCase().startsWith('ee') && sec.length > 34) {
+      try {
+        const domainHex = sec.slice(34);
+        const domain = Buffer.from(domainHex, 'hex').toString('ascii').trim().toLowerCase().replace(/\.$/, '');
+        if (domain) list.add(domain);
+      } catch {}
+    }
+
+    return Array.from(list);
   }
 
   pipeToBackend(clientSocket, firstChunk, targetPort, label) {
@@ -3180,29 +3719,40 @@ class TcpRouter {
           const { sni, alpn } = parseClientHello(chunk);
           let target = null;
 
-          // Priority 1: Reality target SNI
-          if (this.config.enable.reality && this.ports.reality && sni === this.config.reality.target) {
-            target = { port: this.ports.reality, label: 'REALITY' };
+          // Priority 0: MTProto fake-TLS check (by SNI match)
+          if (this.config.enable.mtproto && this.ports.mtproto && sni) {
+            const cleanSni = sni.toLowerCase().trim().replace(/\.$/, '');
+            const allowedMtg = this.getMtprotoSniList();
+            if (allowedMtg.includes(cleanSni)) {
+              target = { port: this.ports.mtproto, label: 'MTProto' };
+            }
           }
-          // Priority 2: ShadowTLS SNI (if explicitly enabled)
-          else if (this.config.enable.shadowTlsVless && this.ports.shadowTls && sni === this.config.shadowTls.sni) {
-            target = { port: this.ports.shadowTls, label: 'ShadowTLS-VLESS' };
-          }
-          // Priority 3: Trojan gRPC TLS (ALPN h2)
-          else if (this.config.enable.trojanGrpcTls && this.ports.trojanGrpcTls && alpn && alpn.includes('h2')) {
-            target = { port: this.ports.trojanGrpcTls, label: 'Trojan-gRPC-TLS' };
-          }
-          // Priority 4: Internal HTTPS server (handles VLESS-WS-TLS, VMess-WS-TLS, HTTPS Sub, HTTPS Panel)
-          else if (this.internalHttpsPort) {
-            target = { port: this.internalHttpsPort, label: 'Internal-HTTPS' };
-          }
-          // Priority 5: Fallback to vlessWsTls if singbox port is open
-          else if (this.config.enable.vlessWsTls && this.ports.vlessWsTls) {
-            target = { port: this.ports.vlessWsTls, label: 'VLESS-WS-TLS' };
-          }
-          // Priority 6: Reality decoy fallback
-          else if (this.config.enable.reality && this.ports.reality) {
-            target = { port: this.ports.reality, label: 'REALITY-Decoy' };
+
+          if (!target) {
+            // Priority 1: Reality target SNI
+            if (this.config.enable.reality && this.ports.reality && sni === this.config.reality.target) {
+              target = { port: this.ports.reality, label: 'REALITY' };
+            }
+            // Priority 2: ShadowTLS SNI (if explicitly enabled)
+            else if (this.config.enable.shadowTlsVless && this.ports.shadowTls && sni === this.config.shadowTls.sni) {
+              target = { port: this.ports.shadowTls, label: 'ShadowTLS-VLESS' };
+            }
+            // Priority 3: Trojan gRPC TLS (ALPN h2)
+            else if (this.config.enable.trojanGrpcTls && this.ports.trojanGrpcTls && alpn && alpn.includes('h2')) {
+              target = { port: this.ports.trojanGrpcTls, label: 'Trojan-gRPC-TLS' };
+            }
+            // Priority 4: Internal HTTPS server (handles VLESS-WS-TLS, VMess-WS-TLS, HTTPS Sub, HTTPS Panel)
+            else if (this.internalHttpsPort) {
+              target = { port: this.internalHttpsPort, label: 'Internal-HTTPS' };
+            }
+            // Priority 5: Fallback to vlessWsTls if singbox port is open
+            else if (this.config.enable.vlessWsTls && this.ports.vlessWsTls) {
+              target = { port: this.ports.vlessWsTls, label: 'VLESS-WS-TLS' };
+            }
+            // Priority 6: Reality decoy fallback
+            else if (this.config.enable.reality && this.ports.reality) {
+              target = { port: this.ports.reality, label: 'REALITY-Decoy' };
+            }
           }
 
           if (target) {
@@ -3246,6 +3796,22 @@ class TcpRouter {
       socket.on('error', () => {});
     });
 
+    if (this.config.enable.mtproto && this.ports.mtproto && this.config.mtproto && this.config.mtproto.port && this.config.mtproto.port !== this.config.publicPort) {
+      try {
+        this.mtprotoServer = net.createServer((socket) => {
+          this.pipeToBackend(socket, Buffer.alloc(0), this.ports.mtproto, 'MTProto-Dedicated');
+        });
+        this.mtprotoServer.listen(this.config.mtproto.port, '0.0.0.0', () => {
+          Logger.success(`Dedicated MTProto TCP listener on 0.0.0.0:${this.config.mtproto.port}`);
+        });
+        this.mtprotoServer.on('error', (err) => {
+          Logger.warn(`Dedicated MTProto listener error: ${err.message}`);
+        });
+      } catch (err) {
+        Logger.warn(`Failed to bind dedicated MTProto port: ${err.message}`);
+      }
+    }
+
     return new Promise((resolve, reject) => {
       this.server.listen(this.config.publicPort, '0.0.0.0', () => {
         Logger.success(`Public TCP multiplexer listening on 0.0.0.0:${this.config.publicPort}`);
@@ -3261,6 +3827,9 @@ class TcpRouter {
     }
     if (this.httpsServer) {
       try { this.httpsServer.close(); } catch {}
+    }
+    if (this.mtprotoServer) {
+      try { this.mtprotoServer.close(); } catch {}
     }
   }
 }
@@ -3310,6 +3879,14 @@ async function startGate(userConfig = {}) {
   Logger.item('Panel Path', `/${config.panelPath}`);
   Logger.item('Data Directory', config.paths.dataDir);
 
+  // Pre-flight check: truncate any oversized existing log files to immediately reclaim disk space
+  const maxLogSize = (config.maxLogSizeMb || 5) * 1024 * 1024;
+  for (const logPath of [config.paths.singboxLog, config.paths.xrayLog, config.paths.cloudflaredLog, config.paths.mtgLog]) {
+    if (rotateLogIfNeeded(logPath, maxLogSize)) {
+      Logger.info(`Reclaimed disk space: truncated oversized log (${path.basename(logPath)})`);
+    }
+  }
+
   // 3. Persistent state
   const stateMgr = new StateManager(config.paths, config);
   const state = stateMgr.loadOrCreate();
@@ -3335,6 +3912,7 @@ async function startGate(userConfig = {}) {
   if (config.enable.socks) allocatedPorts.socks = await allocatePorts();
   if (config.enable.httpProxy) allocatedPorts.httpProxy = await allocatePorts();
   if (config.enable.vlessXhttp) allocatedPorts.xray = await allocatePorts();
+  if (config.enable.mtproto) allocatedPorts.mtproto = await allocatePorts();
 
   // 6. Manage Binaries
   Logger.section('Engines & Binaries');
@@ -3348,6 +3926,14 @@ async function startGate(userConfig = {}) {
   let hasCloudflared = false;
   if (config.enable.argo) {
     hasCloudflared = await binManager.ensureCloudflared();
+  }
+  let hasMtg = false;
+  if (config.enable.mtproto) {
+    hasMtg = await binManager.ensureMtg();
+    if (!hasMtg) {
+      config.enable.mtproto = false;
+      delete allocatedPorts.mtproto;
+    }
   }
 
   // 7. Start Engine Instances
@@ -3372,6 +3958,12 @@ async function startGate(userConfig = {}) {
     argoDomain = await argoInstance.start();
   }
 
+  let mtgInstance = null;
+  if (hasMtg && allocatedPorts.mtproto) {
+    mtgInstance = new MtgEngine(config, stateMgr, allocatedPorts.mtproto);
+    mtgInstance.start();
+  }
+
   // 8. Generate share links & subscriptions
   const linkGen = new LinkGenerator(config, stateMgr.state, resolvedHost);
   const compatNodes = linkGen.getAllNodes({ compat: 'v2ray', argoDomain, allowLocalHostLinks: config.allowLocalHostLinks });
@@ -3386,11 +3978,12 @@ async function startGate(userConfig = {}) {
   const engineStatusGetter = () => ({
     singbox: !!(singboxInstance && singboxInstance.process && !singboxInstance.process.killed),
     xray: !!(xrayInstance && xrayInstance.process && !xrayInstance.process.killed),
-    argo: !!(argoInstance && argoInstance.process && !argoInstance.process.killed)
+    argo: !!(argoInstance && argoInstance.process && !argoInstance.process.killed),
+    mtproto: !!(mtgInstance && mtgInstance.process && !mtgInstance.process.killed)
   });
 
   const { server: expressServer, app: expressApp } = createHttpPanel(config, stateMgr, engineStatusGetter, () => resolvedHost);
-  const tcpRouter = new TcpRouter(config, allocatedPorts, expressServer, expressApp);
+  const tcpRouter = new TcpRouter(config, allocatedPorts, expressServer, expressApp, stateMgr);
   await tcpRouter.start();
 
   // 10. Summary
@@ -3405,6 +3998,7 @@ async function startGate(userConfig = {}) {
     if (singboxInstance) singboxInstance.stop();
     if (xrayInstance) xrayInstance.stop();
     if (argoInstance) argoInstance.stop();
+    if (mtgInstance) mtgInstance.stop();
     if (tcpRouter) tcpRouter.stop();
     process.exit(0);
   };
@@ -3423,6 +4017,7 @@ async function startGate(userConfig = {}) {
     singboxInstance,
     xrayInstance,
     argoInstance,
+    mtgInstance,
     shutdown
   };
 }
@@ -3439,5 +4034,11 @@ if (require.main === module) {
 module.exports = {
   MAVIS_CONFIG,
   BK_CONFIG: MAVIS_CONFIG,
-  startGate
+  DEFAULT_CONFIG,
+  buildConfig,
+  startGate,
+  Logger,
+  readTailSync,
+  rotateLogIfNeeded,
+  MtgEngine
 };

@@ -47,6 +47,39 @@ class LinkGenerator {
     return null; // Hysteria removed as requested
   }
 
+  generateMtproto() {
+    if (!this.config.enable.mtproto) return null;
+    const secret = this.state.mtprotoSecret;
+    if (!secret) return null;
+
+    let sni = (this.config.mtproto && this.config.mtproto.sni) || 'www.google.com';
+    if (secret.toLowerCase().startsWith('ee') && secret.length > 34) {
+      try {
+        const dHex = secret.slice(34);
+        const parsed = Buffer.from(dHex, 'hex').toString('ascii').trim();
+        if (parsed) sni = parsed;
+      } catch {}
+    }
+    const port = (this.config.mtproto && this.config.mtproto.port) || this.port;
+    const name = `${this.prefix}MTProto`;
+
+    const uri = `tg://proxy?server=${this.host}&port=${port}&secret=${secret}`;
+    const tmeUri = `https://t.me/proxy?server=${this.host}&port=${port}&secret=${secret}`;
+
+    return {
+      name,
+      type: 'MTProto',
+      label: 'Telegram MTProto Proxy (Fake-TLS)',
+      compat: true,
+      uri,
+      tmeUri,
+      note: `Fake-TLS SNI: ${sni}`,
+      clash: null,
+      singboxOutbound: null,
+      singboxJson: null
+    };
+  }
+
   generateVlessWs() {
     if (!this.config.enable.vlessWs) return null;
     const name = `${this.prefix}WS`;
@@ -820,6 +853,7 @@ class LinkGenerator {
     }
 
     const all = [
+      this.generateMtproto(),
       this.generateReality(),
       this.generateVlessWsTls(),
       this.generateTrojanGrpcTls(),

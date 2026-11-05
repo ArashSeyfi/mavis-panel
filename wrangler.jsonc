@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mavis-panel",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-11-04",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "PANEL_PATH": "mavis",
+    "UUID": "d342d11e-d424-4583-b36e-524ab1f0afa4",
+    "NODE_PREFIX": "mavis-worker - "
+  }
+}

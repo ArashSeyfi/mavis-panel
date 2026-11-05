@@ -44,6 +44,16 @@ function isValidNode(node, options = {}) {
 
     const parsed = new URL(uri);
 
+    // Special handling for tg:// (Telegram MTProto link: tg://proxy?server=...&port=...&secret=...)
+    if (scheme === 'tg') {
+      if (compatMode === 'v2ray') return false;
+      const server = parsed.searchParams.get('server');
+      const secret = parsed.searchParams.get('secret');
+      if (!server || !secret) return false;
+      if (!allowLocalHostLinks && isLocalAddress(server)) return false;
+      return true;
+    }
+
     // Check host
     if (!allowLocalHostLinks && isLocalAddress(parsed.hostname)) {
       return false;

@@ -101,8 +101,11 @@ class AssetManager {
         const full = path.join(d, name);
         try {
           if (fs.existsSync(full)) {
-            const buf = fs.readFileSync(full);
-            if (buf && buf.length > 0) return buf;
+            const stat = fs.statSync(full);
+            if (stat.size > 0 && stat.size <= 2 * 1024 * 1024) {
+              const buf = fs.readFileSync(full);
+              if (buf && buf.length > 0) return buf;
+            }
           }
         } catch (_) {}
       }
@@ -129,6 +132,7 @@ parts.push(cleanModule(path.join(SRC_DIR, 'cert.js'), 'lib/cert.js'));
 parts.push(cleanModule(path.join(SRC_DIR, 'engines', 'singbox.js'), 'lib/engines/singbox.js'));
 parts.push(cleanModule(path.join(SRC_DIR, 'engines', 'xray.js'), 'lib/engines/xray.js'));
 parts.push(cleanModule(path.join(SRC_DIR, 'engines', 'argo.js'), 'lib/engines/argo.js'));
+parts.push(cleanModule(path.join(SRC_DIR, 'engines', 'mtproto.js'), 'lib/engines/mtproto.js'));
 parts.push(cleanModule(path.join(SRC_DIR, 'panel', 'validator.js'), 'lib/panel/validator.js'));
 parts.push(cleanModule(path.join(SRC_DIR, 'panel', 'links.js'), 'lib/panel/links.js'));
 
@@ -150,7 +154,13 @@ if (require.main === module) {
 module.exports = {
   MAVIS_CONFIG,
   BK_CONFIG: MAVIS_CONFIG,
-  startGate
+  DEFAULT_CONFIG,
+  buildConfig,
+  startGate,
+  Logger,
+  readTailSync,
+  rotateLogIfNeeded,
+  MtgEngine
 };
 `);
 

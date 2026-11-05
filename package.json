@@ -7,7 +7,9 @@
     "start": "node index.js",
     "dev": "node src/server.js",
     "build": "node scripts/bundle.js",
-    "bundle": "node scripts/bundle.js"
+    "bundle": "node scripts/bundle.js",
+    "build:worker": "node scripts/bundle-worker.js",
+    "deploy:worker": "node scripts/deploy-worker.js"
   },
   "dependencies": {
     "axios": "^1.7.7",
@@ -17,5 +19,11 @@
     "node": ">=18"
   },
   "author": "Arash Seyfi",
-  "license": "MIT"
+  "license": "MIT",
+  "contributors": [
+    "4rsh14 (https://github.com/4rsh14)"
+  ],
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
 }

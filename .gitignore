@@ -3,6 +3,7 @@ package-lock.json
 *.log
 .env
 .pi/
+.wrangler/
 *.crt
 *.key
 *.pem

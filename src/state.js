@@ -29,6 +29,7 @@ class StateManager {
       realityShortId: '',
       shadowTlsPassword: '',
       shadowsocksPassword: '',
+      mtprotoSecret: '',
       wireguardPrivateKey: '',
       wireguardPublicKey: '',
       wireguardClientPrivateKey: '',
@@ -47,9 +48,12 @@ class StateManager {
     try {
       fs.mkdirSync(this.paths.dataDir, { recursive: true });
       if (fs.existsSync(this.paths.stateFile)) {
-        const raw = fs.readFileSync(this.paths.stateFile, 'utf8');
-        const parsed = JSON.parse(raw);
-        this.state = { ...this.state, ...parsed };
+        const stat = fs.statSync(this.paths.stateFile);
+        if (stat.size > 0 && stat.size < 1024 * 1024) {
+          const raw = fs.readFileSync(this.paths.stateFile, 'utf8');
+          const parsed = JSON.parse(raw);
+          this.state = { ...this.state, ...parsed };
+        }
       }
     } catch (err) {
       Logger.warn(`Failed to read existing state.json: ${err.message}. Generating fresh state.`);
@@ -87,6 +91,23 @@ class StateManager {
       this.state.realityShortId = this.config.reality.shortId;
     } else if (!this.state.realityShortId) {
       this.state.realityShortId = crypto.randomBytes(4).toString('hex');
+    }
+
+    // MTProto Fake-TLS Secret
+    const targetSni = ((this.config.mtproto && this.config.mtproto.sni) || 'www.google.com').trim().toLowerCase();
+    const targetHex = Buffer.from(targetSni, 'ascii').toString('hex');
+    if (this.config.mtproto && this.config.mtproto.secret) {
+      this.state.mtprotoSecret = this.config.mtproto.secret;
+    } else if (!this.state.mtprotoSecret) {
+      this.state.mtprotoSecret = 'ee' + crypto.randomBytes(16).toString('hex') + targetHex;
+    } else {
+      // Auto-migrate from blocked legacy 'dns.google' or update if user changed MTPROTO_SNI
+      const current = this.state.mtprotoSecret.toLowerCase();
+      if (current.startsWith('ee') && current.length >= 34 && !current.endsWith(targetHex)) {
+        const keyPart = current.slice(0, 34); // 'ee' + 32-char hex key
+        this.state.mtprotoSecret = keyPart + targetHex;
+        Logger.info(`MTProto secret auto-migrated / updated to clean SNI (${targetSni})`);
+      }
     }
 
     // WireGuard
@@ -134,6 +155,11 @@ class StateManager {
   setRealityKeys(privateKey, publicKey) {
     this.state.realityPrivateKey = privateKey;
     this.state.realityPublicKey = publicKey;
+    this.save();
+  }
+
+  setMtprotoSecret(secret) {
+    this.state.mtprotoSecret = secret;
     this.save();
   }
 

@@ -5,7 +5,7 @@ Single-port proxy multiplexer with a web panel. Routes TLS, HTTP, WebSocket, gRP
 ## What it does
 
 - Multiplexes all proxy traffic through a single TCP port
-- Supports VLESS, Trojan, VMess, Shadowsocks, WireGuard, and Reality
+- Supports VLESS, Trojan, VMess, Shadowsocks, WireGuard, Reality, and Telegram MTProto (Fake-TLS)
 - Generates subscription links for v2rayNG, Hiddify, Clash Meta, Streisand, etc.
 - Provides direct connection URIs with copy/QR
 - Optional Cloudflare Argo tunnel integration
@@ -41,6 +41,20 @@ Or with docker-compose:
 ```bash
 docker compose up -d
 ```
+
+## Cloudflare Workers (Serverless Edge)
+
+Deploy Mavis Panel directly to Cloudflare Workers with native VLESS over WebSocket, subscription generation (Base64, Clash Meta, Sing-box), and clean IP routing:
+
+```bash
+# 1. Setup credentials in .env
+cp .env.example .env
+# Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in .env
+
+# 2. Deploy to Cloudflare Workers
+npm run deploy:worker
+```
+
 
 ## Environment variables
 
@@ -94,4 +108,7 @@ MIT
 
 ---
 
-Made by Arash Seyfi
+## Credits & Contributors
+
+- **Author & Maintainer:** Arash Seyfi
+- **Contributor:** [4rsh14](https://github.com/4rsh14) (MTProto proxy engine & Cloudflare Workers serverless edge support)

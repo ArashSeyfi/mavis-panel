@@ -40,7 +40,17 @@ const DEFAULT_CONFIG = {
     tuic: false,
     socks: false,
     httpProxy: false,
-    argo: false
+    argo: false,
+    mtproto: true
+  },
+  mtproto: {
+    sni: 'www.google.com',
+    secret: '',
+    concurrency: 512,
+    preferIp: 'prefer-ipv4',
+    tolerateTimeSkewness: '120s',
+    socks5: '',
+    port: null
   },
   argo: {
     domain: '',
@@ -80,9 +90,12 @@ const DEFAULT_CONFIG = {
   },
   singBoxVersion: '1.11.15',
   xrayVersion: '',
+  mtgVersion: '2.2.8',
   panelToken: '',
   cpuLimitPercent: null,
-  quietConsoleAfterMs: 180000
+  quietConsoleAfterMs: 180000,
+  logLevel: 'warn',
+  maxLogSizeMb: 5
 };
 
 /**
@@ -178,6 +191,19 @@ function buildConfig(userOverrides = {}) {
   if (env.ENABLE_SOCKS !== undefined) cfg.enable.socks = parseBool(env.ENABLE_SOCKS, cfg.enable.socks);
   if (env.ENABLE_HTTP_PROXY !== undefined) cfg.enable.httpProxy = parseBool(env.ENABLE_HTTP_PROXY, cfg.enable.httpProxy);
   if (env.ENABLE_ARGO !== undefined) cfg.enable.argo = parseBool(env.ENABLE_ARGO, cfg.enable.argo);
+  if (env.ENABLE_MTPROTO !== undefined) cfg.enable.mtproto = parseBool(env.ENABLE_MTPROTO, cfg.enable.mtproto);
+
+  if (env.MTPROTO_SNI || env.MTPROTO_DOMAIN) cfg.mtproto.sni = env.MTPROTO_SNI || env.MTPROTO_DOMAIN;
+  if (env.MTPROTO_SECRET) cfg.mtproto.secret = env.MTPROTO_SECRET;
+  if (env.MTPROTO_PORT) cfg.mtproto.port = parseInt(env.MTPROTO_PORT, 10);
+  if (env.MTPROTO_CONCURRENCY) {
+    const parsedConc = parseInt(env.MTPROTO_CONCURRENCY, 10);
+    if (!isNaN(parsedConc) && parsedConc > 0) cfg.mtproto.concurrency = parsedConc;
+  }
+  if (env.MTPROTO_PREFER_IP) cfg.mtproto.preferIp = env.MTPROTO_PREFER_IP;
+  if (env.MTPROTO_TIME_SKEW) cfg.mtproto.tolerateTimeSkewness = env.MTPROTO_TIME_SKEW;
+  if (env.MTPROTO_SOCKS5) cfg.mtproto.socks5 = env.MTPROTO_SOCKS5;
+  if (env.MTG_VERSION) cfg.mtgVersion = env.MTG_VERSION;
 
   if (env.WG_PORT) cfg.wireguard.port = parseInt(env.WG_PORT, 10);
   if (env.WG_SERVER_IP) cfg.wireguard.serverIp = env.WG_SERVER_IP;
@@ -202,6 +228,14 @@ function buildConfig(userOverrides = {}) {
 
   if (env.CPU_LIMIT_PERCENT) cfg.cpuLimitPercent = parseInt(env.CPU_LIMIT_PERCENT, 10);
 
+  if (env.LOG_LEVEL || env.SINGBOX_LOG_LEVEL) cfg.logLevel = (env.LOG_LEVEL || env.SINGBOX_LOG_LEVEL).toLowerCase();
+  if (env.XRAY_LOG_LEVEL) cfg.xrayLogLevel = env.XRAY_LOG_LEVEL.toLowerCase();
+  if (env.ARGO_LOG_LEVEL) cfg.argoLogLevel = env.ARGO_LOG_LEVEL.toLowerCase();
+  if (env.MAX_LOG_SIZE_MB) {
+    const parsedMb = parseInt(env.MAX_LOG_SIZE_MB, 10);
+    if (!isNaN(parsedMb) && parsedMb > 0) cfg.maxLogSizeMb = parsedMb;
+  }
+
   // Data paths
   const dataDir = resolveDataDir(cfg.dataDirHint);
   const paths = {
@@ -218,7 +252,10 @@ function buildConfig(userOverrides = {}) {
     xrayConfig: path.join(dataDir, 'xray.json'),
     xrayLog: path.join(dataDir, 'xray.log'),
     cloudflaredBin: path.join(dataDir, 'bin', os.platform() === 'win32' ? 'cloudflared.exe' : 'cloudflared'),
-    cloudflaredLog: path.join(dataDir, 'cloudflared.log')
+    cloudflaredLog: path.join(dataDir, 'cloudflared.log'),
+    mtgBin: path.join(dataDir, 'bin', os.platform() === 'win32' ? 'mtg.exe' : 'mtg'),
+    mtgConfig: path.join(dataDir, 'mtg.toml'),
+    mtgLog: path.join(dataDir, 'mtg.log')
   };
 
   return {

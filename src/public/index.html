@@ -43,7 +43,7 @@
         </div>
       </div>
 
-      <div class="protos">
+      <div class="protos" id="protoTagsContainer">
         <span class="proto-tag">VLESS</span>
         <span class="proto-tag">Trojan</span>
         <span class="proto-tag">VMess</span>
@@ -109,6 +109,18 @@
           <div class="sub-controls">
             <input type="text" id="urlSubFull" class="mono-input" readonly>
             <button type="button" class="btn" data-action="copy-input" data-target="urlSubFull">Copy</button>
+          </div>
+        </div>
+
+        <div class="sub-row" id="subRowMtproto">
+          <div class="sub-meta">
+            <strong>Telegram MTProto</strong>
+            <span class="sub-hint">Fake-TLS proxy</span>
+          </div>
+          <div class="sub-controls">
+            <input type="text" id="urlMtproto" class="mono-input" readonly>
+            <button type="button" class="btn" data-action="copy-input" data-target="urlMtproto">Copy</button>
+            <a href="#" id="btnConnectTg" class="btn" target="_blank">Connect</a>
           </div>
         </div>
 

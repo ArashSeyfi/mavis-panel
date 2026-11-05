@@ -5,14 +5,33 @@ const { ensureTlsCertificates } = require('../cert');
 const { Logger } = require('../logger');
 
 class TcpRouter {
-  constructor(config, targetPorts, expressServer, expressApp) {
+  constructor(config, targetPorts, expressServer, expressApp, stateManager = null) {
     this.config = config;
     this.ports = targetPorts;
     this.httpServer = expressServer;
     this.expressApp = expressApp || (expressServer && expressServer.listeners('request')[0]);
+    this.stateManager = stateManager;
     this.server = null;
     this.httpsServer = null;
     this.internalHttpsPort = null;
+    this.mtprotoServer = null;
+  }
+
+  getMtprotoSniList() {
+    const list = new Set();
+    const cfgSni = (this.config.mtproto && this.config.mtproto.sni) || 'www.google.com';
+    list.add(cfgSni.toLowerCase().trim().replace(/\.$/, ''));
+
+    const sec = this.stateManager?.state?.mtprotoSecret || (this.config.mtproto && this.config.mtproto.secret);
+    if (sec && typeof sec === 'string' && sec.toLowerCase().startsWith('ee') && sec.length > 34) {
+      try {
+        const domainHex = sec.slice(34);
+        const domain = Buffer.from(domainHex, 'hex').toString('ascii').trim().toLowerCase().replace(/\.$/, '');
+        if (domain) list.add(domain);
+      } catch {}
+    }
+
+    return Array.from(list);
   }
 
   pipeToBackend(clientSocket, firstChunk, targetPort, label) {
@@ -184,29 +203,40 @@ class TcpRouter {
           const { sni, alpn } = parseClientHello(chunk);
           let target = null;
 
-          // Priority 1: Reality target SNI
-          if (this.config.enable.reality && this.ports.reality && sni === this.config.reality.target) {
-            target = { port: this.ports.reality, label: 'REALITY' };
+          // Priority 0: MTProto fake-TLS check (by SNI match)
+          if (this.config.enable.mtproto && this.ports.mtproto && sni) {
+            const cleanSni = sni.toLowerCase().trim().replace(/\.$/, '');
+            const allowedMtg = this.getMtprotoSniList();
+            if (allowedMtg.includes(cleanSni)) {
+              target = { port: this.ports.mtproto, label: 'MTProto' };
+            }
           }
-          // Priority 2: ShadowTLS SNI (if explicitly enabled)
-          else if (this.config.enable.shadowTlsVless && this.ports.shadowTls && sni === this.config.shadowTls.sni) {
-            target = { port: this.ports.shadowTls, label: 'ShadowTLS-VLESS' };
-          }
-          // Priority 3: Trojan gRPC TLS (ALPN h2)
-          else if (this.config.enable.trojanGrpcTls && this.ports.trojanGrpcTls && alpn && alpn.includes('h2')) {
-            target = { port: this.ports.trojanGrpcTls, label: 'Trojan-gRPC-TLS' };
-          }
-          // Priority 4: Internal HTTPS server (handles VLESS-WS-TLS, VMess-WS-TLS, HTTPS Sub, HTTPS Panel)
-          else if (this.internalHttpsPort) {
-            target = { port: this.internalHttpsPort, label: 'Internal-HTTPS' };
-          }
-          // Priority 5: Fallback to vlessWsTls if singbox port is open
-          else if (this.config.enable.vlessWsTls && this.ports.vlessWsTls) {
-            target = { port: this.ports.vlessWsTls, label: 'VLESS-WS-TLS' };
-          }
-          // Priority 6: Reality decoy fallback
-          else if (this.config.enable.reality && this.ports.reality) {
-            target = { port: this.ports.reality, label: 'REALITY-Decoy' };
+
+          if (!target) {
+            // Priority 1: Reality target SNI
+            if (this.config.enable.reality && this.ports.reality && sni === this.config.reality.target) {
+              target = { port: this.ports.reality, label: 'REALITY' };
+            }
+            // Priority 2: ShadowTLS SNI (if explicitly enabled)
+            else if (this.config.enable.shadowTlsVless && this.ports.shadowTls && sni === this.config.shadowTls.sni) {
+              target = { port: this.ports.shadowTls, label: 'ShadowTLS-VLESS' };
+            }
+            // Priority 3: Trojan gRPC TLS (ALPN h2)
+            else if (this.config.enable.trojanGrpcTls && this.ports.trojanGrpcTls && alpn && alpn.includes('h2')) {
+              target = { port: this.ports.trojanGrpcTls, label: 'Trojan-gRPC-TLS' };
+            }
+            // Priority 4: Internal HTTPS server (handles VLESS-WS-TLS, VMess-WS-TLS, HTTPS Sub, HTTPS Panel)
+            else if (this.internalHttpsPort) {
+              target = { port: this.internalHttpsPort, label: 'Internal-HTTPS' };
+            }
+            // Priority 5: Fallback to vlessWsTls if singbox port is open
+            else if (this.config.enable.vlessWsTls && this.ports.vlessWsTls) {
+              target = { port: this.ports.vlessWsTls, label: 'VLESS-WS-TLS' };
+            }
+            // Priority 6: Reality decoy fallback
+            else if (this.config.enable.reality && this.ports.reality) {
+              target = { port: this.ports.reality, label: 'REALITY-Decoy' };
+            }
           }
 
           if (target) {
@@ -250,6 +280,22 @@ class TcpRouter {
       socket.on('error', () => {});
     });
 
+    if (this.config.enable.mtproto && this.ports.mtproto && this.config.mtproto && this.config.mtproto.port && this.config.mtproto.port !== this.config.publicPort) {
+      try {
+        this.mtprotoServer = net.createServer((socket) => {
+          this.pipeToBackend(socket, Buffer.alloc(0), this.ports.mtproto, 'MTProto-Dedicated');
+        });
+        this.mtprotoServer.listen(this.config.mtproto.port, '0.0.0.0', () => {
+          Logger.success(`Dedicated MTProto TCP listener on 0.0.0.0:${this.config.mtproto.port}`);
+        });
+        this.mtprotoServer.on('error', (err) => {
+          Logger.warn(`Dedicated MTProto listener error: ${err.message}`);
+        });
+      } catch (err) {
+        Logger.warn(`Failed to bind dedicated MTProto port: ${err.message}`);
+      }
+    }
+
     return new Promise((resolve, reject) => {
       this.server.listen(this.config.publicPort, '0.0.0.0', () => {
         Logger.success(`Public TCP multiplexer listening on 0.0.0.0:${this.config.publicPort}`);
@@ -265,6 +311,9 @@ class TcpRouter {
     }
     if (this.httpsServer) {
       try { this.httpsServer.close(); } catch {}
+    }
+    if (this.mtprotoServer) {
+      try { this.mtprotoServer.close(); } catch {}
     }
   }
 }

@@ -1,5 +1,6 @@
+const path = require('path');
 const axios = require('axios');
-const { Logger } = require('./logger');
+const { Logger, rotateLogIfNeeded } = require('./logger');
 const { buildConfig } = require('./config');
 const { StateManager } = require('./state');
 const { allocatePorts } = require('./ports');
@@ -7,6 +8,7 @@ const { BinaryManager } = require('./binaries');
 const { SingBoxEngine } = require('./engines/singbox');
 const { XrayEngine } = require('./engines/xray');
 const { ArgoTunnel } = require('./engines/argo');
+const { MtgEngine } = require('./engines/mtproto');
 const { LinkGenerator } = require('./panel/links');
 const { createHttpPanel } = require('./panel/http-panel');
 const { TcpRouter } = require('./mux/tcp-router');
@@ -54,6 +56,14 @@ async function startGate(userConfig = {}) {
   Logger.item('Panel Path', `/${config.panelPath}`);
   Logger.item('Data Directory', config.paths.dataDir);
 
+  // Pre-flight check: truncate any oversized existing log files to immediately reclaim disk space
+  const maxLogSize = (config.maxLogSizeMb || 5) * 1024 * 1024;
+  for (const logPath of [config.paths.singboxLog, config.paths.xrayLog, config.paths.cloudflaredLog, config.paths.mtgLog]) {
+    if (rotateLogIfNeeded(logPath, maxLogSize)) {
+      Logger.info(`Reclaimed disk space: truncated oversized log (${path.basename(logPath)})`);
+    }
+  }
+
   // 3. Persistent state
   const stateMgr = new StateManager(config.paths, config);
   const state = stateMgr.loadOrCreate();
@@ -79,6 +89,7 @@ async function startGate(userConfig = {}) {
   if (config.enable.socks) allocatedPorts.socks = await allocatePorts();
   if (config.enable.httpProxy) allocatedPorts.httpProxy = await allocatePorts();
   if (config.enable.vlessXhttp) allocatedPorts.xray = await allocatePorts();
+  if (config.enable.mtproto) allocatedPorts.mtproto = await allocatePorts();
 
   // 6. Manage Binaries
   Logger.section('Engines & Binaries');
@@ -92,6 +103,14 @@ async function startGate(userConfig = {}) {
   let hasCloudflared = false;
   if (config.enable.argo) {
     hasCloudflared = await binManager.ensureCloudflared();
+  }
+  let hasMtg = false;
+  if (config.enable.mtproto) {
+    hasMtg = await binManager.ensureMtg();
+    if (!hasMtg) {
+      config.enable.mtproto = false;
+      delete allocatedPorts.mtproto;
+    }
   }
 
   // 7. Start Engine Instances
@@ -116,6 +135,12 @@ async function startGate(userConfig = {}) {
     argoDomain = await argoInstance.start();
   }
 
+  let mtgInstance = null;
+  if (hasMtg && allocatedPorts.mtproto) {
+    mtgInstance = new MtgEngine(config, stateMgr, allocatedPorts.mtproto);
+    mtgInstance.start();
+  }
+
   // 8. Generate share links & subscriptions
   const linkGen = new LinkGenerator(config, stateMgr.state, resolvedHost);
   const compatNodes = linkGen.getAllNodes({ compat: 'v2ray', argoDomain, allowLocalHostLinks: config.allowLocalHostLinks });
@@ -130,11 +155,12 @@ async function startGate(userConfig = {}) {
   const engineStatusGetter = () => ({
     singbox: !!(singboxInstance && singboxInstance.process && !singboxInstance.process.killed),
     xray: !!(xrayInstance && xrayInstance.process && !xrayInstance.process.killed),
-    argo: !!(argoInstance && argoInstance.process && !argoInstance.process.killed)
+    argo: !!(argoInstance && argoInstance.process && !argoInstance.process.killed),
+    mtproto: !!(mtgInstance && mtgInstance.process && !mtgInstance.process.killed)
   });
 
   const { server: expressServer, app: expressApp } = createHttpPanel(config, stateMgr, engineStatusGetter, () => resolvedHost);
-  const tcpRouter = new TcpRouter(config, allocatedPorts, expressServer, expressApp);
+  const tcpRouter = new TcpRouter(config, allocatedPorts, expressServer, expressApp, stateMgr);
   await tcpRouter.start();
 
   // 10. Summary
@@ -149,6 +175,7 @@ async function startGate(userConfig = {}) {
     if (singboxInstance) singboxInstance.stop();
     if (xrayInstance) xrayInstance.stop();
     if (argoInstance) argoInstance.stop();
+    if (mtgInstance) mtgInstance.stop();
     if (tcpRouter) tcpRouter.stop();
     process.exit(0);
   };
@@ -167,6 +194,7 @@ async function startGate(userConfig = {}) {
     singboxInstance,
     xrayInstance,
     argoInstance,
+    mtgInstance,
     shutdown
   };
 }
